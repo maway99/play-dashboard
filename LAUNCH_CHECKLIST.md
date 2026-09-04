@@ -1,4 +1,4 @@
-# Launch Checklist — Trilogy Panel
+# Launch Checklist — Play Gloucester Room One Panel
 
 Run through this **on-site, on the actual lighting PC, with the MA2 show file finalised**. Anything unchecked is a known risk to opening night.
 
@@ -9,50 +9,45 @@ Run through this **on-site, on the actual lighting PC, with the MA2 show file fi
 - [ ] grandMA2 show file is finalised; every cue/executor referenced in `config.json` exists in the show
 - [ ] MA2 → Setup → Network → **Telnet Remote → Login Enabled = Yes**
 - [ ] A `password` is set in MA2 for the panel's user (not blank for production)
-- [ ] Resolume PC has a **static IP**; that IP is in `config.json`
-- [ ] Resolume → Preferences → Webserver → Enabled, port 8080
-- [ ] Windows Firewall on the Resolume PC allows inbound 8080 from the MA2 PC's IP
 - [ ] Node.js LTS installed on the MA2 PC
 - [ ] Google Chrome installed on the MA2 PC
 
 ## Install
 
-- [ ] Project copied to a permanent path (e.g. `C:\trilogy-panel\`)
+- [ ] Project copied to a permanent path (e.g. `C:\play-gloucester-room-one-panel\`)
 - [ ] `config.json` reviewed end-to-end — every executor number cross-checked against the show file
 - [ ] `setup.bat` run as Administrator (not `setup.ps1` directly), no errors
-- [ ] `pm2 status` shows `trilogy-panel` as `online`
-- [ ] `http://localhost:3000` loads — Status tab shows green dots for MA2 and Resolume
+- [ ] `pm2 status` shows `play-gloucester-room-one-panel` as `online`
+- [ ] `http://localhost:3000` loads — Status tab shows MA2 connection state
 
 ## Smoke test (server connected, panel open)
 
-For each, press the panel control and confirm the **MA2 command line** (or Resolume preview) reacts correctly:
+For each, press the panel control and confirm the **MA2 command line** reacts correctly:
 
 - [ ] **Haze slider** — drag to 50, release. MA2 Fader for haze exec moves. Drag to 0.
 - [ ] **Fade Time** — switch between 0s / 0.5s / 2s. Pick 0s for next test.
-- [ ] **Cue from each bank** — Static, Slow, Main, Strobing, Lasers Slow, Lasers Drop, Buildups (1 cue per bank minimum). Confirm the right rig look comes up each time.
+- [ ] **Colour controls** — test All, each fixture row, and each palette. Confirm Beams, Strobes, Pin Spots, and Lasers receive the mapped colour cues.
+- [ ] **Maintenance tab cue mapping** — if lamp/reset/disable controls are required, confirm `fixtureMaintenance.configured = true` and every global/beam maintenance cue maps to the final MA2 show file.
+- [ ] **Maintenance tab safety** — confirm All lamps off and Reset all fixtures require confirmation before dispatch.
+- [ ] **Cue from each bank** — after assigning cues, test Slow, Main, Show, Buildups, and Laser Cues (1 cue per bank minimum). Confirm the right rig look comes up each time.
 - [ ] **Cue swap** — fire a cue, then a different one. Previous deactivates, new one activates.
 - [ ] **Blackout** — toggle on, rig blacks out. Toggle off, rig comes back to last cue.
-- [ ] **End of Night** — fire while a cue is active. EOTN sequence runs, previous cue + confetti tracking clear.
+- [ ] **End of Night** — fire while a cue is active. EOTN sequence runs and previous cue clears.
 - [ ] **EOTN release** — with EOTN active, press any cue. EOTN goes off, new cue fires.
 - [ ] **Disables** — toggle each fixture group off. That group goes dark. Toggle back on, returns. Sidebar badge increments correctly.
-- [ ] **Confetti** — fire each cannon. Physical cannon discharges (NB: do this *before* a public night, not during). Fired indicator shows. Reset clears indicators.
-- [ ] **Video — DJ Source** — switch between Generic Trilogy / Custom Logo / Myles Away. Confirm the right clip plays in Resolume.
-- [ ] **Video — Brightness** — slide to 50, then back to 100. Master opacity moves in Resolume.
 
 ## Failure-mode test
 
 - [ ] Stop MA2 onPC. Panel shows **CONSOLE OFFLINE** overlay within ~5s. All Lighting controls reset.
 - [ ] Relaunch MA2. Overlay dismisses automatically. Verify cues fire again.
-- [ ] Stop Resolume. Video tab shows **RESOLUME OFFLINE** within ~2s. Other tabs still operational.
-- [ ] Relaunch Resolume. Video tab returns. Brightness reads back current Resolume value.
-- [ ] `pm2 stop trilogy-panel` → panel shows **PANEL SERVER OFFLINE**. `pm2 start trilogy-panel` → panel reconnects within ~2s.
+- [ ] `pm2 stop play-gloucester-room-one-panel` → panel shows **PANEL SERVER OFFLINE**. `pm2 start play-gloucester-room-one-panel` → panel reconnects within ~2s.
 - [ ] Kill the Node process with Task Manager (not pm2). PM2 should auto-restart within 2s.
 
 ## Reboot test (most important)
 
 - [ ] Reboot the MA2 PC.
 - [ ] No manual intervention needed — within ~90s of logon you should see the kiosk panel with green status.
-- [ ] If anything is red after 2 minutes, check Task Scheduler → "Last Run Result" for both Trilogy entries.
+- [ ] If anything is red after 2 minutes, check Task Scheduler → "Last Run Result" for both Play Gloucester Room One entries.
 
 ## Hardening for go-live
 

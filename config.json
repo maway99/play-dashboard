@@ -9,214 +9,1125 @@
     "password": "admin",
     "reconnectIntervalMs": 5000
   },
-  "resolume": {
-    "ip": "2.0.0.30",
-    "port": 8080,
-    "pollIntervalMs": 2000,
-    "videoSources": {
-      "mylesAway":     { "label": "Myles Away",     "layer": 1 },
-      "trilogyOnly":   { "label": "Trilogy Only",   "layer": 2 },
-      "customContent": { "label": "Custom Content", "layer": 3 }
+  "link": {
+    "enabled": true,
+    "defaultBpm": 125,
+    "minChangeBpm": 0.1,
+    "minIntervalMs": 400,
+    "pollIntervalMs": 1000,
+    "reconnectIntervalMs": 3000,
+    "carabiner": {
+      "host": "127.0.0.1",
+      "port": 17000,
+      "autoStart": true,
+      "path": "tools/Carabiner"
     },
-    "endOfNightLayer": 4
+    "ma2": {
+      "speedMaster": 1,
+      "command": "SpecialMaster 3.{speedMaster} At {bpm}"
+    }
   },
   "cueStack": {
     "page": 1,
     "exec": 1
   },
-  "cueBanks": {
-    "staticCues": {
-      "label": "Static Cues",
-      "cues": [
-        { "cue": 1,  "label": "All White"  },
-        { "cue": 2,  "label": "All Red"  },
-        { "cue": 3,  "label": "Red Static Slow Fade"  },
-        { "cue": 4,  "label": "Cue 4"  },
-        { "cue": 5,  "label": "Cue 5"  },
-        { "cue": 6,  "label": "Cue 6"  },
-        { "cue": 7,  "label": "Cue 7"  },
-        { "cue": 8,  "label": "Cue 8"  },
-        { "cue": 9,  "label": "Cue 9"  },
-        { "cue": 10, "label": "Cue 10" },
-        { "cue": 11, "label": "Cue 11" },
-        { "cue": 12, "label": "Cue 12" },
-        { "cue": 13, "label": "Cue 13" },
-        { "cue": 14, "label": "Cue 14" },
-        { "cue": 15, "label": "Cue 15" },
-        { "cue": 16, "label": "Cue 16" },
-        { "cue": 17, "label": "Cue 17" },
-        { "cue": 18, "label": "Cue 18" },
-        { "cue": 19, "label": "Cue 19" },
-        { "cue": 20, "label": "Cue 20" }
-      ]
+  "colourControls": {
+    "fixtureModel": "Betopper CLB260-O",
+    "dmxChannel": 8,
+    "colours": [
+      {
+        "id": "open",
+        "slot": "open",
+        "dmx": "000-010",
+        "label": "Open",
+        "hex": "#f8fafc"
+      },
+      {
+        "id": "red",
+        "slot": "COLOR 1",
+        "dmx": "011-015",
+        "label": "Red",
+        "hex": "#ef1d25"
+      },
+      {
+        "id": "green",
+        "slot": "COLOR 2",
+        "dmx": "016-020",
+        "label": "Green",
+        "hex": "#16a34a"
+      },
+      {
+        "id": "blue",
+        "slot": "COLOR 3",
+        "dmx": "021-025",
+        "label": "Blue",
+        "hex": "#1d4ed8"
+      },
+      {
+        "id": "yellow",
+        "slot": "COLOR 4",
+        "dmx": "026-030",
+        "label": "Yellow",
+        "hex": "#fde047"
+      },
+      {
+        "id": "orange",
+        "slot": "COLOR 5",
+        "dmx": "031-035",
+        "label": "Orange",
+        "hex": "#f97316"
+      },
+      {
+        "id": "roseRed",
+        "slot": "COLOR 6",
+        "dmx": "036-040",
+        "label": "Rose red",
+        "hex": "#e11d48"
+      },
+      {
+        "id": "lightBlue",
+        "slot": "COLOR 7",
+        "dmx": "041-045",
+        "label": "Light blue",
+        "hex": "#60a5fa"
+      },
+      {
+        "id": "grassGreen",
+        "slot": "COLOR 8",
+        "dmx": "046-050",
+        "label": "Grass green",
+        "hex": "#65a30d"
+      },
+      {
+        "id": "cyan",
+        "slot": "COLOR 9",
+        "dmx": "051-055",
+        "label": "Cyan",
+        "hex": "#06b6d4"
+      },
+      {
+        "id": "filter3200",
+        "slot": "COLOR 10",
+        "dmx": "056-060",
+        "label": "3200K filter",
+        "hex": "#fff38f"
+      },
+      {
+        "id": "filter5600",
+        "slot": "COLOR 11",
+        "dmx": "061-065",
+        "label": "5600K filter",
+        "hex": "#d7f7e5"
+      }
+    ],
+    "fixtures": [
+      {
+        "id": "beams",
+        "label": "Beams",
+        "page": 2,
+        "exec": 1,
+        "cues": {
+          "open": 1,
+          "red": 2,
+          "green": 3,
+          "blue": 4,
+          "yellow": 5,
+          "orange": 6,
+          "roseRed": 7,
+          "lightBlue": 8,
+          "grassGreen": 9,
+          "cyan": 10,
+          "filter3200": 11,
+          "filter5600": 12
+        }
+      },
+      {
+        "id": "strobes",
+        "label": "Strobes",
+        "page": 2,
+        "exec": 2,
+        "cues": {
+          "open": 1,
+          "red": 2,
+          "green": 3,
+          "blue": 4,
+          "yellow": 5,
+          "orange": 6,
+          "roseRed": 7,
+          "lightBlue": 8,
+          "grassGreen": 9,
+          "cyan": 10,
+          "filter3200": 11,
+          "filter5600": 12
+        }
+      },
+      {
+        "id": "pinSpots",
+        "label": "Pin Spots",
+        "page": 2,
+        "exec": 3,
+        "cues": {
+          "open": 1,
+          "red": 2,
+          "green": 3,
+          "blue": 4,
+          "yellow": 5,
+          "orange": 6,
+          "roseRed": 7,
+          "lightBlue": 8,
+          "grassGreen": 9,
+          "cyan": 10,
+          "filter3200": 11,
+          "filter5600": 12
+        }
+      },
+      {
+        "id": "lasers",
+        "label": "Lasers",
+        "page": 2,
+        "exec": 4,
+        "cues": {
+          "open": 1,
+          "red": 2,
+          "green": 3,
+          "blue": 4,
+          "yellow": 5,
+          "orange": 6,
+          "roseRed": 7,
+          "lightBlue": 8,
+          "grassGreen": 9,
+          "cyan": 10,
+          "filter3200": 11,
+          "filter5600": 12
+        }
+      }
+    ],
+    "palettes": [
+      {
+        "id": "iceSnap",
+        "label": "Ice snap",
+        "colours": {
+          "beams": "open",
+          "strobes": "cyan",
+          "pinSpots": "lightBlue",
+          "lasers": "cyan"
+        }
+      },
+      {
+        "id": "warmPulse",
+        "label": "Warm pulse",
+        "colours": {
+          "beams": "filter3200",
+          "strobes": "open",
+          "pinSpots": "orange",
+          "lasers": "yellow"
+        }
+      },
+      {
+        "id": "laserRoom",
+        "label": "Laser room",
+        "colours": {
+          "beams": "green",
+          "strobes": "open",
+          "pinSpots": "grassGreen",
+          "lasers": "green"
+        }
+      },
+      {
+        "id": "pinkBlue",
+        "label": "Pink blue",
+        "colours": {
+          "beams": "roseRed",
+          "strobes": "blue",
+          "pinSpots": "roseRed",
+          "lasers": "lightBlue"
+        }
+      },
+      {
+        "id": "redline",
+        "label": "Redline",
+        "colours": {
+          "beams": "red",
+          "strobes": "open",
+          "pinSpots": "orange",
+          "lasers": "red"
+        }
+      },
+      {
+        "id": "deepBlue",
+        "label": "Deep blue",
+        "colours": {
+          "beams": "blue",
+          "strobes": "lightBlue",
+          "pinSpots": "blue",
+          "lasers": "blue"
+        }
+      },
+      {
+        "id": "fire",
+        "label": "Fire",
+        "colours": {
+          "beams": "red",
+          "strobes": "orange",
+          "pinSpots": "yellow",
+          "lasers": "red"
+        }
+      },
+      {
+        "id": "toxic",
+        "label": "Toxic",
+        "colours": {
+          "beams": "grassGreen",
+          "strobes": "yellow",
+          "pinSpots": "green",
+          "lasers": "grassGreen"
+        }
+      },
+      {
+        "id": "candy",
+        "label": "Candy",
+        "colours": {
+          "beams": "roseRed",
+          "strobes": "cyan",
+          "pinSpots": "yellow",
+          "lasers": "lightBlue"
+        }
+      },
+      {
+        "id": "warmWhite",
+        "label": "Warm white",
+        "colours": {
+          "beams": "filter3200",
+          "strobes": "filter3200",
+          "pinSpots": "filter3200",
+          "lasers": "filter3200"
+        }
+      },
+      {
+        "id": "palette-11",
+        "label": "Palette 11",
+        "placeholder": true
+      },
+      {
+        "id": "palette-12",
+        "label": "Palette 12",
+        "placeholder": true
+      }
+    ]
+  },
+  "fixtureMaintenance": {
+    "configured": false,
+    "unconfiguredMessage": "Fixture maintenance cue mapping is not configured. Add exact grandMA2 cue assignments for global lamp/reset actions and each beam fixture before enabling.",
+    "cueStack": {
+      "page": null,
+      "exec": null
     },
+    "globalActions": {
+      "lampOn": {
+        "label": "All lamps on",
+        "cue": null
+      },
+      "lampOff": {
+        "label": "All lamps off",
+        "cue": null
+      },
+      "reset": {
+        "label": "Reset all fixtures",
+        "cue": null
+      }
+    },
+    "beamFixtures": [
+      {
+        "id": "beam-01",
+        "label": "Beam 1",
+        "number": 1,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-02",
+        "label": "Beam 2",
+        "number": 2,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-03",
+        "label": "Beam 3",
+        "number": 3,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-04",
+        "label": "Beam 4",
+        "number": 4,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-05",
+        "label": "Beam 5",
+        "number": 5,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-06",
+        "label": "Beam 6",
+        "number": 6,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-07",
+        "label": "Beam 7",
+        "number": 7,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-08",
+        "label": "Beam 8",
+        "number": 8,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-09",
+        "label": "Beam 9",
+        "number": 9,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-10",
+        "label": "Beam 10",
+        "number": 10,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-11",
+        "label": "Beam 11",
+        "number": 11,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      },
+      {
+        "id": "beam-12",
+        "label": "Beam 12",
+        "number": 12,
+        "actions": {
+          "lampOn": {
+            "cue": null
+          },
+          "lampOff": {
+            "cue": null
+          },
+          "reset": {
+            "cue": null
+          },
+          "disable": {
+            "cue": null
+          },
+          "enable": {
+            "cue": null
+          }
+        }
+      }
+    ],
+    "strobeFixtures": [
+      {
+        "id": "strobe-01",
+        "label": "Strobe 1",
+        "number": 1
+      },
+      {
+        "id": "strobe-02",
+        "label": "Strobe 2",
+        "number": 2
+      },
+      {
+        "id": "strobe-03",
+        "label": "Strobe 3",
+        "number": 3
+      },
+      {
+        "id": "strobe-04",
+        "label": "Strobe 4",
+        "number": 4
+      },
+      {
+        "id": "strobe-05",
+        "label": "Strobe 5",
+        "number": 5
+      },
+      {
+        "id": "strobe-06",
+        "label": "Strobe 6",
+        "number": 6
+      },
+      {
+        "id": "strobe-07",
+        "label": "Strobe 7",
+        "number": 7
+      },
+      {
+        "id": "strobe-08",
+        "label": "Strobe 8",
+        "number": 8
+      },
+      {
+        "id": "strobe-09",
+        "label": "Strobe 9",
+        "number": 9
+      },
+      {
+        "id": "strobe-10",
+        "label": "Strobe 10",
+        "number": 10
+      },
+      {
+        "id": "strobe-11",
+        "label": "Strobe 11",
+        "number": 11
+      },
+      {
+        "id": "strobe-12",
+        "label": "Strobe 12",
+        "number": 12
+      }
+    ]
+  },
+  "specialEffects": {
+    "configured": false,
+    "showOnLightingPage": false,
+    "unconfiguredMessage": "Special effects cue mapping is not configured. Add exact grandMA2 cue assignments before enabling Confetti or CO2 fire actions.",
+    "cueStack": {
+      "page": null,
+      "exec": null
+    },
+    "groups": [
+      {
+        "id": "confetti",
+        "label": "Confetti",
+        "armLabel": "Arm",
+        "clearLabel": "Clear",
+        "actions": [
+          {
+            "id": "fire1",
+            "label": "Fire 1",
+            "cue": null
+          },
+          {
+            "id": "fire2",
+            "label": "Fire 2",
+            "cue": null
+          }
+        ]
+      },
+      {
+        "id": "co2",
+        "label": "CO2",
+        "armLabel": "CO2 arm",
+        "actions": [
+          {
+            "id": "fire",
+            "label": "Fire",
+            "cue": null
+          }
+        ]
+      }
+    ]
+  },
+  "cueBanks": {
     "slowCues": {
       "label": "Slow Cues",
       "cues": [
-        { "cue": 21, "label": "Slow Reds Fade" },
-        { "cue": 22, "label": "Slow Blues Fade" },
-        { "cue": 23, "label": "Slow Cyans Fade" },
-        { "cue": 24, "label": "Slow Cyans Fly Up" },
-        { "cue": 25, "label": "Slow Reds Fly Up" },
-        { "cue": 26, "label": "Slow Magenta/Blue" },
-        { "cue": 27, "label": "Cue 27" },
-        { "cue": 28, "label": "Cue 28" },
-        { "cue": 29, "label": "Cue 29" },
-        { "cue": 30, "label": "Cue 30" },
-        { "cue": 31, "label": "Cue 31" },
-        { "cue": 32, "label": "Cue 32" },
-        { "cue": 33, "label": "Cue 33" },
-        { "cue": 34, "label": "Cue 34" },
-        { "cue": 35, "label": "Cue 35" },
-        { "cue": 36, "label": "Cue 36" },
-        { "cue": 37, "label": "Cue 37" },
-        { "cue": 38, "label": "Cue 38" },
-        { "cue": 39, "label": "Cue 39" },
-        { "cue": 40, "label": "Cue 40" }
+        {
+          "id": "slow-01",
+          "label": "Slow drift",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-02",
+          "label": "Soft pulse",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-03",
+          "label": "Wide sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-04",
+          "label": "Mirror glide",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-05",
+          "label": "Low shimmer",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-06",
+          "label": "Gentle chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-07",
+          "label": "Smooth fan",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-08",
+          "label": "Slow cross",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-09",
+          "label": "Ambient wave",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-10",
+          "label": "Deep roll",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-11",
+          "label": "Lift wash",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-12",
+          "label": "Calm chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-13",
+          "label": "Ember glow",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-14",
+          "label": "Night tide",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "slow-15",
+          "label": "Low ripple",
+          "cue": null,
+          "placeholder": true
+        }
       ]
     },
     "mainCues": {
       "label": "Main Cues",
       "cues": [
-        { "cue": 41, "label": "Cue 41" },
-        { "cue": 42, "label": "Reds Fly Up" },
-        { "cue": 43, "label": "Blue Fly Up" },
-        { "cue": 44, "label": "Blues/Reds Fade" },
-        { "cue": 45, "label": "Red/White Fade" },
-        { "cue": 46, "label": "White/Red Chase" },
-        { "cue": 47, "label": "Green/Red Snaps" },
-        { "cue": 48, "label": "Cyans Snaps" },
-        { "cue": 49, "label": "Blue/Purple Snaps" },
-        { "cue": 50, "label": "Magenta/Red Fades" },
-        { "cue": 51, "label": "Red/Orange Fades" },
-        { "cue": 52, "label": "Red/Cyan Fades" },
-        { "cue": 53, "label": "Cue 53" },
-        { "cue": 54, "label": "Cue 54" },
-        { "cue": 55, "label": "Cue 55" },
-        { "cue": 56, "label": "Cue 56" },
-        { "cue": 57, "label": "Cue 57" },
-        { "cue": 58, "label": "Cue 58" },
-        { "cue": 59, "label": "Cue 59" },
-        { "cue": 60, "label": "Cue 60" }
-      ]
-    },
-    "strobingCues": {
-      "label": "Strobing Cues",
-      "cues": [
-        { "cue": 61, "label": "White Strobe" },
-        { "cue": 62, "label": "White Strobe Fly Up" },
-        { "cue": 63, "label": "White/Red Strobe" },
-        { "cue": 64, "label": "White/Red Strobe Fly Up" },
-        { "cue": 65, "label": "Cue 65" },
-        { "cue": 66, "label": "Cue 66" },
-        { "cue": 67, "label": "Cue 67" },
-        { "cue": 68, "label": "Cue 68" },
-        { "cue": 69, "label": "Cue 69" },
-        { "cue": 70, "label": "Cue 70" },
-        { "cue": 71, "label": "Cue 71" },
-        { "cue": 72, "label": "Cue 72" },
-        { "cue": 73, "label": "Cue 73" },
-        { "cue": 74, "label": "Cue 74" },
-        { "cue": 75, "label": "Cue 75" },
-        { "cue": 76, "label": "Cue 76" },
-        { "cue": 77, "label": "Cue 77" },
-        { "cue": 78, "label": "Cue 78" },
-        { "cue": 79, "label": "Cue 79" },
-        { "cue": 80, "label": "Cue 80" }
-      ]
-    },
-    "lasersSlow": {
-      "label": "Lasers Slow",
-      "cues": [
-        { "cue": 81,  "label": "Slow Wave White"  },
-        { "cue": 82,  "label": "Slow Wave Red"  },
-        { "cue": 83,  "label": "Slow Wave Blue"  },
-        { "cue": 84,  "label": "Slow Wave White 2"  },
-        { "cue": 85,  "label": "Slow Wave Red 2" },
-        { "cue": 86,  "label": "Slow Wave Blue 2"  },
-        { "cue": 87,  "label": "Slow Blue Dots"  },
-        { "cue": 88,  "label": "Slow Cyan Dots"  },
-        { "cue": 89,  "label": "Cue 89"  },
-        { "cue": 90,  "label": "Cue 90"  },
-        { "cue": 91,  "label": "Cue 91"  },
-        { "cue": 92,  "label": "Cue 92"  },
-        { "cue": 93,  "label": "Cue 93"  },
-        { "cue": 94,  "label": "Cue 94"  },
-        { "cue": 95,  "label": "Cue 95"  },
-        { "cue": 96,  "label": "Cue 96"  },
-        { "cue": 97,  "label": "Cue 97"  },
-        { "cue": 98,  "label": "Cue 98"  },
-        { "cue": 99,  "label": "Cue 99"  },
-        { "cue": 100, "label": "Cue 100" }
-      ]
-    },
-    "lasersDrop": {
-      "label": "Lasers Drop",
-      "cues": [
-        { "cue": 101, "label": "Strobing White Dots" },
-        { "cue": 102, "label": "Strobing Green Dots" },
-        { "cue": 103, "label": "Cue 103" },
-        { "cue": 104, "label": "Cue 104" },
-        { "cue": 105, "label": "Cue 105" },
-        { "cue": 106, "label": "Cue 106" },
-        { "cue": 107, "label": "Cue 107" },
-        { "cue": 108, "label": "Cue 108" },
-        { "cue": 109, "label": "Cue 109" },
-        { "cue": 110, "label": "Cue 110" },
-        { "cue": 111, "label": "Cue 111" },
-        { "cue": 112, "label": "Cue 112" },
-        { "cue": 113, "label": "Cue 113" },
-        { "cue": 114, "label": "Cue 114" },
-        { "cue": 115, "label": "Cue 115" },
-        { "cue": 116, "label": "Cue 116" },
-        { "cue": 117, "label": "Cue 117" },
-        { "cue": 118, "label": "Cue 118" },
-        { "cue": 119, "label": "Cue 119" },
-        { "cue": 120, "label": "Cue 120" }
+        {
+          "id": "main-01",
+          "label": "Main bounce",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-02",
+          "label": "Club chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-03",
+          "label": "Beam fan",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-04",
+          "label": "Room sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-05",
+          "label": "Pulse ride",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-06",
+          "label": "Floor sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-07",
+          "label": "Cross rhythm",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-08",
+          "label": "Centre punch",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-09",
+          "label": "Side chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-10",
+          "label": "Tunnel roll",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-11",
+          "label": "Accent hits",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-12",
+          "label": "Energy wave",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-13",
+          "label": "Circle chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-14",
+          "label": "Split sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "main-15",
+          "label": "Full room",
+          "cue": null,
+          "placeholder": true
+        }
       ]
     },
     "buildups": {
       "label": "Buildups",
       "cues": [
-        { "cue": 121, "label": "White Buildup Medium" },
-        { "cue": 122, "label": "White Buildup Fast" },
-        { "cue": 123, "label": "Red Buildup Medium" },
-        { "cue": 124, "label": "Red Buildup Fast" },
-        { "cue": 125, "label": "Cue 125" },
-        { "cue": 126, "label": "Cue 126" },
-        { "cue": 127, "label": "Cue 127" },
-        { "cue": 128, "label": "Cue 128" },
-        { "cue": 129, "label": "Cue 129" },
-        { "cue": 130, "label": "Cue 130" },
-        { "cue": 131, "label": "Cue 131" },
-        { "cue": 132, "label": "Cue 132" },
-        { "cue": 133, "label": "Cue 133" },
-        { "cue": 134, "label": "Cue 134" },
-        { "cue": 135, "label": "Cue 135" },
-        { "cue": 136, "label": "Cue 136" },
-        { "cue": 137, "label": "Cue 137" },
-        { "cue": 138, "label": "Cue 138" },
-        { "cue": 139, "label": "Cue 139" },
-        { "cue": 140, "label": "Cue 140" }
+        {
+          "id": "buildup-01",
+          "label": "Build rise",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-02",
+          "label": "Build pulse",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-03",
+          "label": "Build chase",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-04",
+          "label": "Build lift",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-05",
+          "label": "Build sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-06",
+          "label": "Build strobe",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-07",
+          "label": "Build tension",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-08",
+          "label": "Build peak",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-09",
+          "label": "Build release",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-10",
+          "label": "Build surge",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-11",
+          "label": "Build climb",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-12",
+          "label": "Build swell",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-13",
+          "label": "Build rush",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-14",
+          "label": "Build crest",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "buildup-15",
+          "label": "Build charge",
+          "cue": null,
+          "placeholder": true
+        }
+      ]
+    },
+    "laserCues": {
+      "label": "Laser Cues",
+      "cues": [
+        {
+          "id": "laser-01",
+          "label": "Laser wave",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-02",
+          "label": "Laser fan",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-03",
+          "label": "Laser tunnel",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-04",
+          "label": "Laser sweep",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-05",
+          "label": "Laser dots",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-06",
+          "label": "Laser cone",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-07",
+          "label": "Laser pulse",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-08",
+          "label": "Laser cross",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-09",
+          "label": "Laser scan",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-10",
+          "label": "Laser bounce",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-11",
+          "label": "Laser net",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-12",
+          "label": "Laser hit",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-13",
+          "label": "Laser weave",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-14",
+          "label": "Laser burst",
+          "cue": null,
+          "placeholder": true
+        },
+        {
+          "id": "laser-15",
+          "label": "Laser sky",
+          "cue": null,
+          "placeholder": true
+        }
       ]
     }
   },
   "executors": {
-    "haze":       { "page": 1, "exec": 6 },
-    "endOfNight": { "page": 1, "exec": 3 },
-    "confetti": [
-      { "id": "leftFront",  "label": "Left 1",  "side": "left",  "page": 2, "exec": 111 },
-      { "id": "leftBack",   "label": "Left 2",  "side": "left",  "page": 2, "exec": 112 },
-      { "id": "rightFront", "label": "Right 1", "side": "right", "page": 2, "exec": 113 },
-      { "id": "rightBack",  "label": "Right 2", "side": "right", "page": 2, "exec": 114 }
-    ],
+    "haze": {
+      "page": 1,
+      "exec": 6
+    },
+    "endOfNight": {
+      "page": 1,
+      "exec": 3
+    },
     "disables": {
-      "beams":     { "label": "Beams",      "page": 1, "exec": 10 },
-      "spots":     { "label": "Spots",      "page": 1, "exec": 11 },
-      "blitzers":  { "label": "Blitzers",   "page": 1, "exec": 12 },
-      "washes":    { "label": "Washes",     "page": 1, "exec": 13 },
-      "lasers":    { "label": "Lasers",     "page": 1, "exec": 14 },
-      "laserBars": { "label": "Laser Bars", "page": 1, "exec": 15 }
+      "beams": {
+        "label": "Beams",
+        "page": 1,
+        "exec": 10
+      },
+      "spots": {
+        "label": "Spots",
+        "page": 1,
+        "exec": 11
+      },
+      "blitzers": {
+        "label": "Blitzers",
+        "page": 1,
+        "exec": 12
+      },
+      "washes": {
+        "label": "Washes",
+        "page": 1,
+        "exec": 13
+      },
+      "lasers": {
+        "label": "Lasers",
+        "page": 1,
+        "exec": 14
+      },
+      "laserBars": {
+        "label": "Laser Bars",
+        "page": 1,
+        "exec": 15
+      }
     }
   },
   "defaults": {

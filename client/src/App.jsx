@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
 import Lighting from './tabs/Lighting.jsx';
-import Video from './tabs/Video.jsx';
+import Control from './tabs/Control.jsx';
 import Status from './tabs/Status.jsx';
 import { useWebSocket } from './hooks/useWebSocket.js';
 
@@ -28,9 +28,9 @@ export default function App() {
           <OfflineBanner visible title="PANEL SERVER OFFLINE" subtitle="Reconnecting" />
         )}
 
-        <div className="flex-1 min-h-0 overflow-hidden p-8">
+        <div className="flex-1 min-h-0 overflow-hidden p-[var(--page-pad)]">
           {tab === 'lighting' && <Lighting state={state} send={send} />}
-          {tab === 'video'    && <Video    state={state} send={send} />}
+          {tab === 'control'  && <Control  state={state} send={send} />}
           {tab === 'status'   && <Status   state={state} tick={tick} wsConnected={wsConnected} send={send} />}
         </div>
       </main>

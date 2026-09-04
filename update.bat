@@ -1,6 +1,6 @@
 @echo off
 REM ---------------------------------------------------------------------------
-REM  Trilogy Panel — update script
+REM  Play Gloucester Room One Panel — update script
 REM  Double-click this on the lighting PC to pull latest, rebuild, restart.
 REM  On a NEW PC, run setup.bat once first (not update.bat).
 REM ---------------------------------------------------------------------------
@@ -8,7 +8,7 @@ REM ---------------------------------------------------------------------------
 cd /d "%~dp0"
 setlocal
 
-echo === Trilogy Panel update ===
+echo === Play Gloucester Room One Panel update ===
 
 where git >nul 2>nul
 if %errorlevel% == 0 (
@@ -47,7 +47,7 @@ if errorlevel 1 goto :failed
 
 echo.
 echo === Update complete. Panel will refresh on the next WebSocket reconnect. ===
-echo     If anything looks wrong, check:  pm2 logs trilogy-panel
+echo     If anything looks wrong, check:  pm2 logs play-gloucester-room-one-panel
 pause
 exit /b 0
 

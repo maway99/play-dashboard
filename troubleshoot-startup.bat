@@ -2,22 +2,22 @@
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-echo === Trilogy Panel startup troubleshoot ===
+echo === Play Gloucester Room One Panel startup troubleshoot ===
 echo Project: %CD%
 echo User:    %USERNAME%
 echo.
 
 echo --- Scheduled tasks ---
-schtasks /Query /TN "Trilogy PM2 Resurrect" /FO LIST /V 2>nul
-if errorlevel 1 echo Trilogy PM2 Resurrect: NOT FOUND
+schtasks /Query /TN "Play Gloucester Room One PM2 Resurrect" /FO LIST /V 2>nul
+if errorlevel 1 echo Play Gloucester Room One PM2 Resurrect: NOT FOUND
 echo.
-schtasks /Query /TN "Trilogy Chrome Kiosk" /FO LIST /V 2>nul
-if errorlevel 1 echo Trilogy Chrome Kiosk: NOT FOUND
+schtasks /Query /TN "Play Gloucester Room One Chrome Kiosk" /FO LIST /V 2>nul
+if errorlevel 1 echo Play Gloucester Room One Chrome Kiosk: NOT FOUND
 echo.
 
 echo --- Startup folder shortcuts ---
 set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
-dir /b "%STARTUP%\Trilogy-Panel-*" 2>nul || echo No Trilogy shortcuts in Startup folder
+dir /b "%STARTUP%\Play-Gloucester-Room-One-Panel-*" 2>nul || echo No Play Gloucester Room One shortcuts in Startup folder
 echo.
 
 echo --- PM2 ---

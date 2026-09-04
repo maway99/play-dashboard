@@ -15,10 +15,10 @@ export default {
         info: '#3b82f6'
       },
       fontFamily: {
-        sora: ['Sora', 'system-ui', 'sans-serif']
+        sora: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
       },
       borderRadius: {
-        ui: '12px'
+        ui: '6px'
       }
     }
   },

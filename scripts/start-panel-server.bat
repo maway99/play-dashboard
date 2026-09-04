@@ -1,5 +1,5 @@
 @echo off
-REM Start trilogy-panel server. Use: start-panel-server.bat [setup|logon]
+REM Start play-gloucester-room-one-panel server. Use: start-panel-server.bat [setup|logon]
 REM   setup  - PM2 restart/register (during install)
 REM   logon  - fresh PM2 start at boot + verify URL + node fallback
 
@@ -52,7 +52,7 @@ if /i "%MODE%"=="setup" (
 
 REM --- logon: PM2 resurrect is unreliable on Windows; always cold-start ---
 call "%PM2%" ping >>"%LOG%" 2>&1
-call "%PM2%" delete trilogy-panel >>"%LOG%" 2>&1
+call "%PM2%" delete play-gloucester-room-one-panel >>"%LOG%" 2>&1
 call "%PM2%" start "%ROOT%\ecosystem.config.cjs" >>"%LOG%" 2>&1
 set "PM2_ERR=!errorlevel!"
 call "%PM2%" save >>"%LOG%" 2>&1
@@ -72,7 +72,7 @@ echo PM2 started but server not responding>>"%LOG%"
 
 :node_fallback
 echo Starting node server.js directly...>>"%LOG%"
-start "trilogy-panel-direct" /MIN "%NODE_EXE%" "%ROOT%\server.js" >>"%LOGDIR%\node-direct.log" 2>&1
+start "play-gloucester-room-one-panel-direct" /MIN "%NODE_EXE%" "%ROOT%\server.js" >>"%LOGDIR%\node-direct.log" 2>&1
 
 call :wait_for_server
 if !errorlevel! equ 0 (

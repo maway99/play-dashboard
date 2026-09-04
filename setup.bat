@@ -1,5 +1,5 @@
 @echo off
-REM Trilogy Panel — full installer (no setup.ps1 required).
+REM Play Gloucester Room One Panel — full installer (no setup.ps1 required).
 REM Right-click this file -> Run as administrator
 
 setlocal EnableExtensions
@@ -7,7 +7,7 @@ cd /d "%~dp0"
 set "ROOT=%CD%"
 
 echo.
-echo === Trilogy Panel setup ===
+echo === Play Gloucester Room One Panel setup ===
 echo     Folder: %ROOT%
 echo.
 
@@ -82,7 +82,7 @@ call "%ROOT%\scripts\start-panel-server.bat" setup
 if errorlevel 1 (
   echo.
   echo Server failed to start. Check: logs\panel-server.log
-  echo   pm2 logs trilogy-panel
+  echo   pm2 logs play-gloucester-room-one-panel
   goto :fail
 )
 
@@ -94,15 +94,15 @@ echo [6/7] Register Task Scheduler ^(schtasks^)
 set "RUNAS=%USERNAME%"
 if /i not "%USERDOMAIN%"=="%COMPUTERNAME%" set "RUNAS=%USERDOMAIN%\%USERNAME%"
 
-schtasks /Delete /TN "Trilogy Edge Kiosk" /F >nul 2>&1
+schtasks /Delete /TN "Play Gloucester Room One Edge Kiosk" /F >nul 2>&1
 
-call :RegisterTask "Trilogy PM2 Resurrect" "%ROOT%\startup-pm2.bat"
+call :RegisterTask "Play Gloucester Room One PM2 Resurrect" "%ROOT%\startup-pm2.bat"
 if errorlevel 1 goto :fail
-call :RegisterTask "Trilogy Chrome Kiosk" "%ROOT%\startup-chrome.bat"
+call :RegisterTask "Play Gloucester Room One Chrome Kiosk" "%ROOT%\startup-chrome.bat"
 if errorlevel 1 goto :fail
 
-call :InstallStartupShortcut "Trilogy-Panel-PM2.bat" "%ROOT%\startup-pm2.bat"
-call :InstallStartupShortcut "Trilogy-Panel-Kiosk.bat" "%ROOT%\startup-chrome.bat"
+call :InstallStartupShortcut "Play-Gloucester-Room-One-Panel-PM2.bat" "%ROOT%\startup-pm2.bat"
+call :InstallStartupShortcut "Play-Gloucester-Room-One-Panel-Kiosk.bat" "%ROOT%\startup-chrome.bat"
 
 echo.
 echo [7/7] Kiosk power / display settings
@@ -123,7 +123,7 @@ if %TRIES% lss 15 (
   timeout /t 2 /nobreak >nul
   goto :wait_server
 )
-echo WARNING: Server not responding yet. Check: pm2 logs trilogy-panel
+echo WARNING: Server not responding yet. Check: pm2 logs play-gloucester-room-one-panel
 goto :done
 
 :server_ok
@@ -133,7 +133,7 @@ echo     Server OK at http://127.0.0.1:3000
 echo.
 echo === Setup complete ===
 echo     pm2 status
-echo     pm2 logs trilogy-panel
+echo     pm2 logs play-gloucester-room-one-panel
 echo     Logs: %ROOT%\logs
 echo     troubleshoot-startup.bat  ^(if kiosk does not open at logon^)
 echo.
@@ -168,8 +168,8 @@ exit /b 0
 echo.
 echo === Setup FAILED ===
 echo If files are missing, run from the full project folder:
-echo   git clone https://github.com/maway99/trilogy-panel.git
-echo   cd trilogy-panel
+echo   git clone https://github.com/maway99/play-gloucester-room-one-panel.git
+echo   cd play-gloucester-room-one-panel
 echo   setup.bat
 pause
 exit /b 1

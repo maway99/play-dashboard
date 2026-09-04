@@ -7,3 +7,11 @@ logs/
 .env
 .vscode/
 .idea/
+
+# Ableton Link bridge binary (fetch with scripts/get-carabiner.ps1 or from the Carabiner releases page)
+tools/Carabiner
+tools/Carabiner.exe
+
+# design/QA screenshots
+/lighting-*.png
+/maintenance-*.png

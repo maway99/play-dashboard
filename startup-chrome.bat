@@ -32,8 +32,8 @@ echo WARNING: Panel server not ready after 3 min - opening kiosk anyway>>"%LOG%"
 
 :launch
 REM Close duplicate kiosk windows (optional; skip if helper missing).
-if exist "%~dp0scripts\close-trilogy-chrome.ps1" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\close-trilogy-chrome.ps1" >>"%LOG%" 2>&1
+if exist "%~dp0scripts\close-play-gloucester-room-one-chrome.ps1" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\close-play-gloucester-room-one-chrome.ps1" >>"%LOG%" 2>&1
   timeout /t 1 /nobreak >nul
 )
 
@@ -58,7 +58,7 @@ start "" "%CHROME%" ^
   --disable-features=TranslateUI,MediaRouter ^
   --disable-pinch ^
   --overscroll-history-navigation=0 ^
-  --user-data-dir="%LOCALAPPDATA%\TrilogyPanelChrome"
+  --user-data-dir="%LOCALAPPDATA%\Play Gloucester Room One Panel Chrome"
 
 echo Kiosk process started>>"%LOG%"
 exit /b 0

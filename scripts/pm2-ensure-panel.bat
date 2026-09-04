@@ -1,5 +1,5 @@
 @echo off
-REM Ensures trilogy-panel is registered and running under PM2.
+REM Ensures play-gloucester-room-one-panel is registered and running under PM2.
 REM Usage: pm2-ensure-panel.bat [restart]
 
 setlocal EnableExtensions
@@ -49,26 +49,26 @@ echo Project:  %ROOT%
 
 call "%PM2%" resurrect 2>nul
 
-call "%PM2%" describe trilogy-panel >nul 2>&1
+call "%PM2%" describe play-gloucester-room-one-panel >nul 2>&1
 if errorlevel 1 goto :cold_start
 
 if /i "%MODE%"=="restart" (
-  call "%PM2%" restart trilogy-panel
+  call "%PM2%" restart play-gloucester-room-one-panel
   if errorlevel 1 goto :cold_start
   goto :save_ok
 )
 
-for /f %%P in ('call "%PM2%" pid trilogy-panel 2^>nul') do (
+for /f %%P in ('call "%PM2%" pid play-gloucester-room-one-panel 2^>nul') do (
   if not "%%P"=="" goto :save_ok
 )
 
-call "%PM2%" restart trilogy-panel
+call "%PM2%" restart play-gloucester-room-one-panel
 if errorlevel 1 goto :cold_start
 goto :save_ok
 
 :cold_start
-call "%PM2%" delete trilogy-panel 2>nul
-echo Starting trilogy-panel...
+call "%PM2%" delete play-gloucester-room-one-panel 2>nul
+echo Starting play-gloucester-room-one-panel...
 call "%PM2%" start "%ROOT%\ecosystem.config.cjs"
 if errorlevel 1 (
   echo.
@@ -77,7 +77,7 @@ if errorlevel 1 (
   echo Try manually in this folder:
   echo   cd /d "%ROOT%"
   echo   pm2 start ecosystem.config.cjs
-  echo   pm2 logs trilogy-panel
+  echo   pm2 logs play-gloucester-room-one-panel
   echo.
   exit /b 1
 )

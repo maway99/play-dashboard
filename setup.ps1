@@ -1,5 +1,5 @@
 # =============================================================================
-#  Trilogy Panel — one-shot installer for the lighting PC (Windows).
+#  Play Gloucester Room One Panel — one-shot installer for the lighting PC (Windows).
 #  Run via setup.bat (recommended) or:
 #    powershell -ExecutionPolicy Bypass -File .\setup.ps1
 #
@@ -8,8 +8,8 @@
 #    2. npm install + client build
 #    3. PM2 install + start + save
 #    4. Task Scheduler (logon, with delays + retries):
-#         a) "Trilogy PM2 Resurrect"  — startup-pm2.bat
-#         b) "Trilogy Chrome Kiosk"   — startup-chrome.bat (waits for server)
+#         a) "Play Gloucester Room One PM2 Resurrect"  — startup-pm2.bat
+#         b) "Play Gloucester Room One Chrome Kiosk"   — startup-chrome.bat (waits for server)
 #    5. Kiosk-friendly Windows settings (power, screensaver, toasts)
 #    6. Smoke test against http://127.0.0.1:3000
 # =============================================================================
@@ -73,7 +73,7 @@ function Set-KioskUserSettings {
   Set-ItemProperty -Path $pushPath -Name ToastEnabled -Value 0 -Type DWord -Force
 }
 
-function Register-TrilogyScheduledTask {
+function Register-PlayGloucesterRoomOneScheduledTask {
   param(
     [string]$Name,
     [string]$BatPath
@@ -124,7 +124,7 @@ function Test-PanelServer {
 
 # --- Main --------------------------------------------------------------------
 
-Write-Host "==> Trilogy Panel setup - running in $root" -ForegroundColor Cyan
+Write-Host "==> Play Gloucester Room One Panel setup - running in $root" -ForegroundColor Cyan
 Require-Admin
 Need-Cmd 'node'
 Need-Cmd 'npm'
@@ -184,8 +184,8 @@ if ($LASTEXITCODE -ne 0) {
   Write-Host "  1. Close this window, open a NEW admin PowerShell, run setup.bat again"
   Write-Host "  2. Or manually:  cd `"$root`""
   Write-Host "                 pm2 start ecosystem.config.cjs"
-  Write-Host "                 pm2 logs trilogy-panel"
-  Write-Error "Failed to start trilogy-panel under PM2."
+  Write-Host "                 pm2 logs play-gloucester-room-one-panel"
+  Write-Error "Failed to start play-gloucester-room-one-panel under PM2."
   exit 1
 }
 
@@ -201,10 +201,10 @@ if (-not (Test-Path $pm2Bat)) { Write-Error "Missing $pm2Bat"; exit 1 }
 if (-not (Test-Path $kioskBat)) { Write-Error "Missing $kioskBat"; exit 1 }
 
 # Remove legacy tasks from older installs.
-schtasks /Delete /TN 'Trilogy Edge Kiosk' /F 2>$null | Out-Null
+schtasks /Delete /TN 'Play Gloucester Room One Edge Kiosk' /F 2>$null | Out-Null
 
-Register-TrilogyScheduledTask -Name 'Trilogy PM2 Resurrect' -BatPath $pm2Bat
-Register-TrilogyScheduledTask -Name 'Trilogy Chrome Kiosk' -BatPath $kioskBat
+Register-PlayGloucesterRoomOneScheduledTask -Name 'Play Gloucester Room One PM2 Resurrect' -BatPath $pm2Bat
+Register-PlayGloucesterRoomOneScheduledTask -Name 'Play Gloucester Room One Chrome Kiosk' -BatPath $kioskBat
 
 Set-KioskPowerSettings
 Set-KioskUserSettings
@@ -214,23 +214,23 @@ if (Test-PanelServer -TimeoutSeconds 30) {
   Write-Host "    Server OK at http://127.0.0.1:3000" -ForegroundColor Green
 }
 else {
-  Write-Warning "Server did not respond within 30s. Check: pm2 logs trilogy-panel"
+  Write-Warning "Server did not respond within 30s. Check: pm2 logs play-gloucester-room-one-panel"
 }
 
 Write-Host ""
 Write-Host "==> Done." -ForegroundColor Green
 Write-Host "    Server status:   pm2 status"
-Write-Host "    Server logs:     pm2 logs trilogy-panel"
+Write-Host "    Server logs:     pm2 logs play-gloucester-room-one-panel"
 Write-Host "    Startup logs:    $logsDir"
 Write-Host "    Open panel now:  http://127.0.0.1:3000"
 Write-Host ""
 Write-Host "    Reboot test (required before go-live):"
 Write-Host "      1. grandMA2 onPC starts (your existing Task Scheduler entry)"
-Write-Host "      2. At logon: Trilogy PM2 Resurrect (waits 10s, then starts server)"
-Write-Host "      3. At logon: Trilogy Chrome Kiosk (waits for server, then opens Chrome)"
+Write-Host "      2. At logon: Play Gloucester Room One PM2 Resurrect (waits 10s, then starts server)"
+Write-Host "      3. At logon: Play Gloucester Room One Chrome Kiosk (waits for server, then opens Chrome)"
 Write-Host ""
 Write-Host "    For a hands-off venue PC, also configure:"
 Write-Host "      - Windows auto-logon for the venue user (netplwiz)"
 Write-Host "      - Disable Windows Update auto-restart during show hours"
-Write-Host "      - Install this project to a fixed path (e.g. C:\trilogy-panel\)"
+Write-Host "      - Install this project to a fixed path (e.g. C:\play-gloucester-room-one-panel\)"
 Write-Host ""

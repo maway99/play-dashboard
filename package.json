@@ -1,7 +1,7 @@
 {
-  "name": "trilogy-panel",
+  "name": "play-gloucester-room-one-panel",
   "version": "1.0.0",
-  "description": "Trilogy Nightclub touch panel — Node server (Express + WebSocket) bridging touch UI to grandMA2 and Resolume.",
+  "description": "Play Gloucester Room One touch panel — Node server (Express + WebSocket) bridging touch UI to grandMA2.",
   "type": "module",
   "main": "server.js",
   "scripts": {

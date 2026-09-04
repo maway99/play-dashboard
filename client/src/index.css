@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Touch-target sizes that shrink on shorter panels instead of overflowing. */
+    --ctl-h: clamp(40px, 5vh, 54px);   /* primary rail buttons */
+    --ctl-sm: clamp(32px, 4.4vh, 48px);  /* arm / lamp buttons */
+    --ctl-xs: clamp(26px, 3.6vh, 40px);  /* in-card clear buttons */
+    --fire-min: clamp(36px, 5.6vh, 72px);
+    --slider-h: clamp(38px, 4.6vh, 52px);
+    --panel-pad-y: clamp(8px, 1.3vh, 12px);
+    --page-pad: clamp(14px, 2.2vh, 32px);
+    --colour-grid-h: clamp(200px, 29vh, 320px); /* colour matrix + palettes band height */
+  }
+
   body {
     @apply bg-bg text-white font-sora;
   }
@@ -14,13 +26,21 @@
   }
 
   .section-header {
-    @apply uppercase tracking-[0.18em] text-[12px] text-muted font-medium;
+    @apply text-[13px] text-muted font-medium;
   }
 
   .btn {
-    @apply rounded-ui transition-colors duration-100 active:scale-[0.98] select-none;
+    @apply rounded-ui select-none;
     min-height: 64px;
     font-weight: 500;
+    letter-spacing: 0;
+    /* Tap acknowledgement: brighten instantly on press, fade back after release. */
+    transition: filter 260ms ease-out, transform 120ms ease-out, background-color 100ms, border-color 100ms, color 100ms;
+  }
+  .btn:active {
+    transform: scale(0.98);
+    filter: brightness(1.9);
+    transition: filter 0ms, transform 60ms;
   }
 
   .btn-default {
@@ -64,38 +84,47 @@
     80%, 100% { content: '...'; }
   }
 
-  .fire-pulse {
-    animation: fire-pulse 0.4s ease-out;
-  }
-  @keyframes fire-pulse {
-    0% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.04); filter: brightness(1.5); }
-    100% { transform: scale(1); filter: brightness(1); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn,
+    .pulse-red,
+    .ellipsis::after {
+      animation: none;
+      transition-duration: 0ms;
+    }
+
+    .btn:active {
+      transform: none;
+    }
   }
 }
 
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  height: 56px;
+  height: var(--slider-h);
   background: transparent;
   outline: none;
+  --fill: 0%;
 }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 16px;
-  background: #1a1a1a;
+  height: 20px;
+  background:
+    linear-gradient(to right, #ffffff 0 var(--fill), #1a1a1a var(--fill) 100%);
   border: 1px solid #333;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 56px;
-  height: 56px;
-  margin-top: -22px;
-  border-radius: 12px;
+  width: var(--slider-h);
+  height: var(--slider-h);
+  margin-top: calc((20px - var(--slider-h)) / 2);
+  border-radius: 6px;
   background: #ffffff;
   border: 2px solid #ffffff;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
+}
+input[type="range"]:disabled::-webkit-slider-runnable-track {
+  background: #1a1a1a;
 }

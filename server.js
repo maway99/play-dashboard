@@ -2,6 +2,7 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import http from 'node:http';
 import net from 'node:net';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,28 +16,52 @@ const startedAt = Date.now();
 // ---------- Server state ("track what we sent") ----------
 const state = {
   ma2: 'disconnected',
-  resolume: 'disconnected',
   haze: 0,
   fadeTime: config.defaults.fadeTime,
   endOfNightActive: false,
   activeCue: null,
-  confetti: Object.fromEntries(config.executors.confetti.map(c => [c.id, false])),
+  fixtureColours: Object.fromEntries(config.colourControls.fixtures.map(f => [f.id, null])),
+  disabledBeamFixtures: Object.fromEntries((config.fixtureMaintenance?.beamFixtures ?? []).map(f => [f.id, false])),
+  specialEffects: Object.fromEntries((config.specialEffects?.groups ?? []).map(group => [
+    group.id,
+    {
+      armed: false,
+      fired: Object.fromEntries((group.actions ?? []).map(action => [action.id, false]))
+    }
+  ])),
   disables: Object.fromEntries(Object.keys(config.executors.disables).map(k => [k, false])),
-  djSource: null,
-  brightness: 100,
   ma2DisconnectedAt: Date.now(),
   ma2LastCommand: null,
   ma2LastCommandAt: null,
   ma2LastResponse: null,
-  resolumeLastPollAt: null,
-  resolumeLastStatus: null
+  link: {
+    enabled: config.link?.enabled !== false,
+    carabiner: 'disconnected',
+    peers: 0,
+    linkBpm: null,
+    bpm: config.link?.defaultBpm ?? 125,
+    source: 'default',
+    beat: null,
+    lastStatusAt: null,
+    lastSentBpm: null,
+    lastSentAt: null,
+    lastSentCommand: null
+  }
 };
 
 function resetLightingNeutral() {
   state.haze = 0;
   state.endOfNightActive = false;
   state.activeCue = null;
-  state.confetti = Object.fromEntries(config.executors.confetti.map(c => [c.id, false]));
+  state.fixtureColours = Object.fromEntries(config.colourControls.fixtures.map(f => [f.id, null]));
+  state.disabledBeamFixtures = Object.fromEntries((config.fixtureMaintenance?.beamFixtures ?? []).map(f => [f.id, false]));
+  state.specialEffects = Object.fromEntries((config.specialEffects?.groups ?? []).map(group => [
+    group.id,
+    {
+      armed: false,
+      fired: Object.fromEntries((group.actions ?? []).map(action => [action.id, false]))
+    }
+  ]));
   for (const k of Object.keys(state.disables)) state.disables[k] = false;
 }
 
@@ -58,12 +83,19 @@ function snapshotState() {
     uptimeMs: Date.now() - startedAt,
     config: {
       ma2: { ip: config.ma2.ip, port: config.ma2.port },
-      resolume: { ip: config.resolume.ip, port: config.resolume.port },
+      colourControls: config.colourControls,
+      fixtureMaintenance: config.fixtureMaintenance,
+      specialEffects: config.specialEffects,
       cueBanks: config.cueBanks,
       cueStack: config.cueStack,
       executors: config.executors,
-      videoSources: config.resolume.videoSources,
-      defaults: config.defaults
+      defaults: config.defaults,
+      link: {
+        enabled: config.link?.enabled !== false,
+        defaultBpm: config.link?.defaultBpm ?? 125,
+        carabiner: { host: config.link?.carabiner?.host ?? '127.0.0.1', port: config.link?.carabiner?.port ?? 17000 },
+        speedMaster: config.link?.ma2?.speedMaster ?? 1
+      }
     }
   };
 }
@@ -150,6 +182,7 @@ class Ma2Telnet {
         // Immediate state sync on connection (includes haze fader value)
         setTimeout(() => pollMa2StateOnce(), 500);
         startMa2Polling(); // Start periodic polling for active cue
+        setTimeout(() => link.pushTempo(true), 700); // desk just came up: give it the current tempo
         broadcastState();
         while (this.queue.length) sock.write(this.queue.shift());
       } else if (lower.includes('login failed') || lower.includes('wrong password') ||
@@ -218,75 +251,209 @@ class Ma2Telnet {
 }
 const ma2 = new Ma2Telnet();
 
-// ---------- Resolume HTTP ----------
-async function resolumeRequest(method, pathSuffix, body) {
-  const url = `http://${config.resolume.ip}:${config.resolume.port}/api/v1${pathSuffix}`;
-  const init = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(5000)
-  };
-  if (body !== undefined) init.body = JSON.stringify(body);
-  const res = await fetch(url, init);
-  state.resolumeLastStatus = res.status;
-  return res;
-}
+// ---------- Ableton Link bridge (via Carabiner) ----------
+// Carabiner (https://github.com/Deep-Symmetry/carabiner) joins the Ableton Link session on the
+// local network and exposes it over a plain-text TCP socket. We read the session tempo from it and
+// push it to a grandMA2 speed master. With no usable Link session (Carabiner not running, or zero
+// peers on the network) we fall back to config.link.defaultBpm so the desk always has a tempo.
+//
+// Carabiner protocol (newline-terminated):
+//   -> status                  <- status { :peers 1 :bpm 128.000000 :start 1234 :beat 56.7 }
+//   -> bpm 125.0               (sets the session tempo; used to park the idle session at the default)
+// Carabiner also emits an unsolicited status line whenever tempo or peer count changes.
+class LinkBridge {
+  constructor(cfg = {}) {
+    this.cfg = {
+      defaultBpm: 125,
+      minChangeBpm: 0.1,
+      minIntervalMs: 400,
+      pollIntervalMs: 1000,
+      reconnectIntervalMs: 3000,
+      ...cfg
+    };
+    this.carabiner = { host: '127.0.0.1', port: 17000, autoStart: false, path: null, ...(cfg.carabiner ?? {}) };
+    this.ma2Cfg = { speedMaster: 1, command: 'SpecialMaster 3.{speedMaster} At {bpm}', ...(cfg.ma2 ?? {}) };
+    this.socket = null;
+    this.buffer = '';
+    this.pollTimer = null;
+    this.reconnectTimer = null;
+    this.pushTimer = null;
+    this.child = null;
+    this.spawnTimer = null;
+    this.stopping = false;
+  }
 
-async function pollResolume() {
-  try {
-    const res = await resolumeRequest('GET', '/product');
-    state.resolumeLastPollAt = Date.now();
-    if (res.ok) {
-      if (state.resolume !== 'connected') {
-        state.resolume = 'connected';
-        try {
-          const [compRes, ...layerResponses] = await Promise.all([
-            resolumeRequest('GET', '/composition'),
-            ...Object.entries(config.resolume.videoSources).map(([id, s]) =>
-              resolumeRequest('GET', `/composition/layers/${s.layer}`).then(r => r.ok ? r.json() : null).then(d => ({ id, value: d?.master?.value ?? 0 }))
-            )
-          ]);
-          if (compRes.ok) {
-            const data = await compRes.json();
-            if (typeof data?.master?.value === 'number') {
-              state.brightness = Math.round(data.master.value * 100);
-            }
-          }
-          const active = layerResponses.find(l => l.value > 0.5);
-          state.djSource = active ? active.id : null;
+  start() {
+    if (this.carabiner.autoStart && this.carabiner.path) this.spawnCarabiner();
+    this.connect();
+    this.recompute(true);
+  }
 
-          setResolumeEndOfNightLayer(state.endOfNightActive);
-        } catch {}
-        broadcastState();
+  stop() {
+    this.stopping = true;
+    clearTimeout(this.reconnectTimer); clearTimeout(this.pushTimer); clearTimeout(this.spawnTimer);
+    clearInterval(this.pollTimer);
+    if (this.socket) { try { this.socket.destroy(); } catch {} }
+    if (this.child) { try { this.child.kill(); } catch {} }
+  }
+
+  // --- optional: run the Carabiner binary ourselves so the kiosk has nothing extra to start ---
+  spawnCarabiner() {
+    if (this.child || this.stopping) return;
+    const bin = resolveCarabinerBinary(this.carabiner.path);
+    if (!bin) {
+      const wanted = path.isAbsolute(this.carabiner.path) ? this.carabiner.path : path.join(__dirname, this.carabiner.path);
+      console.warn(`[Link] Carabiner binary not found at ${wanted}${process.platform === 'win32' ? '(.exe)' : ''} - expecting an external Carabiner on ${this.carabiner.host}:${this.carabiner.port}`);
+      return;
+    }
+    console.log(`[Link] Starting Carabiner: ${bin} --daemon --port ${this.carabiner.port}`);
+    const child = spawn(bin, ['--daemon', '--port', String(this.carabiner.port)], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    this.child = child;
+    child.stdout.on('data', (d) => console.log('[Carabiner]', d.toString().trim()));
+    child.stderr.on('data', (d) => console.warn('[Carabiner!]', d.toString().trim()));
+    child.on('exit', (code) => {
+      console.warn(`[Link] Carabiner exited (${code})`);
+      this.child = null;
+      if (!this.stopping) this.spawnTimer = setTimeout(() => this.spawnCarabiner(), 5000);
+    });
+    child.on('error', (err) => console.warn('[Link] Carabiner spawn error:', err.message));
+  }
+
+  // --- TCP client to Carabiner ---
+  connect() {
+    if (this.socket || this.stopping) return;
+    const sock = new net.Socket();
+    this.socket = sock;
+    this.buffer = '';
+    sock.setEncoding('utf8');
+    sock.setKeepAlive(true, 10000);
+    sock.on('connect', () => {
+      console.log(`[Link] Connected to Carabiner ${this.carabiner.host}:${this.carabiner.port}`);
+      state.link.carabiner = 'connected';
+      this.write('status');
+      clearInterval(this.pollTimer);
+      this.pollTimer = setInterval(() => this.write('status'), this.cfg.pollIntervalMs);
+      this.recompute(true);
+    });
+    sock.on('data', (chunk) => {
+      this.buffer += chunk;
+      let nl;
+      while ((nl = this.buffer.indexOf('\n')) >= 0) {
+        const line = this.buffer.slice(0, nl).trim();
+        this.buffer = this.buffer.slice(nl + 1);
+        if (line) this.handleLine(line);
       }
-    } else if (state.resolume === 'connected') {
-      state.resolume = 'disconnected';
+      if (this.buffer.length > 4000) this.buffer = this.buffer.slice(-1000); // never let a chatty peer grow the buffer
+    });
+    sock.on('error', (err) => {
+      if (state.link.carabiner === 'connected') console.warn('[Link] Carabiner socket error:', err.message);
+    });
+    sock.on('close', () => {
+      const wasConnected = state.link.carabiner === 'connected';
+      this.socket = null;
+      clearInterval(this.pollTimer); this.pollTimer = null;
+      state.link.carabiner = 'disconnected';
+      state.link.peers = 0;
+      state.link.linkBpm = null;
+      state.link.beat = null;
+      if (wasConnected) console.log('[Link] Carabiner disconnected');
+      this.recompute(wasConnected);
+      if (!this.stopping && !this.reconnectTimer) {
+        this.reconnectTimer = setTimeout(() => { this.reconnectTimer = null; this.connect(); }, this.cfg.reconnectIntervalMs);
+      }
+    });
+    sock.connect(this.carabiner.port, this.carabiner.host);
+  }
+
+  write(cmd) {
+    if (this.socket && state.link.carabiner === 'connected') {
+      try { this.socket.write(`${cmd}\n`); } catch {}
+    }
+  }
+
+  handleLine(line) {
+    if (!line.startsWith('status')) {
+      if (!/^(version|unsupported|bad-)/.test(line)) console.log('[Link <-]', line.slice(0, 120));
+      return;
+    }
+    const peers = Number(/:peers\s+(\d+)/.exec(line)?.[1]);
+    const bpm = Number(/:bpm\s+([\d.]+)/.exec(line)?.[1]);
+    const beat = Number(/:beat\s+(-?[\d.]+)/.exec(line)?.[1]);
+    const prevPeers = state.link.peers;
+    if (Number.isFinite(peers)) state.link.peers = peers;
+    if (Number.isFinite(bpm) && bpm > 0) state.link.linkBpm = Math.round(bpm * 10) / 10;
+    if (Number.isFinite(beat)) state.link.beat = beat;
+    state.link.lastStatusAt = Date.now();
+    if (Number.isFinite(peers) && peers !== prevPeers) console.log(`[Link] Peers: ${prevPeers} -> ${peers}`);
+    // Park the idle session at the default so a peer that joins us lands on it rather than Carabiner's 120.
+    if (peers === 0 && Number.isFinite(bpm) && Math.abs(bpm - this.cfg.defaultBpm) > 0.05) {
+      this.write(`bpm ${this.cfg.defaultBpm}`);
+    }
+    this.recompute(false);
+  }
+
+  setEnabled(enabled) {
+    state.link.enabled = !!enabled;
+    console.log(`[Link] Follow Link ${state.link.enabled ? 'enabled' : 'disabled'}`);
+    this.recompute(true);
+  }
+
+  // Effective tempo = Link session tempo when we are following and there is at least one peer,
+  // otherwise the configured default. Pushes to MA2 when it changes.
+  recompute(force) {
+    const following = state.link.enabled && state.link.carabiner === 'connected' && state.link.peers > 0 && Number.isFinite(state.link.linkBpm);
+    const bpm = following ? state.link.linkBpm : this.cfg.defaultBpm;
+    const source = following ? 'link' : 'default';
+    const changed = bpm !== state.link.bpm || source !== state.link.source;
+    state.link.bpm = bpm;
+    state.link.source = source;
+    if (changed || force) {
+      if (changed) console.log(`[Link] Tempo ${bpm} BPM (${source})`);
+      this.pushTempo(force);
       broadcastState();
     }
-  } catch (err) {
-    state.resolumeLastPollAt = Date.now();
-    state.resolumeLastStatus = err.cause?.code || err.message || 'fetch failed';
-    if (state.resolume === 'connected') {
-      state.resolume = 'disconnected';
-      broadcastState();
+  }
+
+  ma2Command(bpm) {
+    const tidy = Number(Number(bpm).toFixed(1)); // 125 -> "125", 128.3 -> "128.3"
+    return this.ma2Cfg.command
+      .replace('{speedMaster}', String(this.ma2Cfg.speedMaster))
+      .replace('{bpm}', String(tidy));
+  }
+
+  // Rate-limited push of the effective tempo to the desk. Only ever sends while MA2 is logged in
+  // (queueing tempo changes for an offline desk would just replay a stale burst on reconnect).
+  pushTempo(force = false) {
+    if (state.ma2 !== 'connected') return;
+    const bpm = state.link.bpm;
+    const last = state.link.lastSentBpm;
+    if (!force && last != null && Math.abs(bpm - last) < this.cfg.minChangeBpm) return;
+    const since = Date.now() - (state.link.lastSentAt ?? 0);
+    if (!force && since < this.cfg.minIntervalMs) {
+      clearTimeout(this.pushTimer);
+      this.pushTimer = setTimeout(() => this.pushTempo(false), this.cfg.minIntervalMs - since);
+      return;
     }
-    console.warn(
-      `[Resolume] Poll failed http://${config.resolume.ip}:${config.resolume.port}/api/v1/product:`,
-      state.resolumeLastStatus
-    );
+    const cmd = this.ma2Command(bpm);
+    ma2.send(cmd);
+    state.link.lastSentBpm = bpm;
+    state.link.lastSentAt = Date.now();
+    state.link.lastSentCommand = cmd;
   }
 }
-
-let resolumeTimer = null;
-function startResolumePolling() {
-  if (resolumeTimer) return;
-  pollResolume();
-  resolumeTimer = setInterval(pollResolume, config.resolume.pollIntervalMs);
+// config points at "tools/Carabiner"; on Windows the release ships as Carabiner.exe.
+function resolveCarabinerBinary(configured) {
+  if (!configured) return null;
+  const base = path.isAbsolute(configured) ? configured : path.join(__dirname, configured);
+  const candidates = process.platform === 'win32'
+    ? [base.endsWith('.exe') ? base : `${base}.exe`, base]
+    : [base];
+  return candidates.find((c) => fs.existsSync(c)) ?? null;
 }
+const link = new LinkBridge(config.link ?? {});
 
 // ---------- MA2 State Polling ----------
 let ma2PollTimer = null;
-let ma2PendingQueries = new Map(); // command -> handler function
 
 function pollMa2State() {
   if (state.ma2 !== 'connected') return;
@@ -360,7 +527,7 @@ function stopMa2Polling() {
   }
 }
 
-// ---------- Command handlers (panel actions → MA2 / Resolume) ----------
+// ---------- Command handlers (panel actions → MA2) ----------
 function setHaze(value) {
   const v = Math.max(0, Math.min(100, Math.round(value)));
   state.haze = v;
@@ -375,31 +542,75 @@ function setFadeTime(value) {
   broadcastState();
 }
 
-const ZERO_FADE_CUE_BANKS = ['lasersSlow', 'lasersDrop', 'buildups'];
+const ZERO_FADE_CUE_BANKS = ['laserCues', 'buildups'];
 
-function cueUsesZeroFade(cueNumber) {
-  for (const key of ZERO_FADE_CUE_BANKS) {
-    const bank = config.cueBanks[key];
-    if (bank?.cues.some((c) => c.cue === cueNumber)) return true;
+function findAssignedCue(cueNumber) {
+  if (!Number.isFinite(cueNumber)) return null;
+  for (const [bankKey, bank] of Object.entries(config.cueBanks ?? {})) {
+    const cue = bank?.cues?.find((entry) => entry.cue === cueNumber);
+    if (cue && Number.isFinite(cue.cue)) return { bankKey, bank, cue };
   }
-  return false;
+  return null;
 }
 
-function setResolumeEndOfNightLayer(active) {
-  if (!config.resolume.endOfNightLayer) return;
-  resolumeRequest('PUT', `/composition/layers/${config.resolume.endOfNightLayer}`, {
-    master: { value: active ? 1.0 : 0.0 }
-  }).catch(err => console.warn('[Resolume] End of Night layer failed:', err.message));
+function cueUsesZeroFade(cueNumber) {
+  const assignedCue = findAssignedCue(cueNumber);
+  return assignedCue ? ZERO_FADE_CUE_BANKS.includes(assignedCue.bankKey) : false;
+}
+
+function findColourControl(fixtureId, colourId) {
+  const fixture = config.colourControls.fixtures.find(f => f.id === fixtureId);
+  const colour = config.colourControls.colours.find(c => c.id === colourId);
+  if (!fixture || !colour) return null;
+  const cue = fixture.cues?.[colourId];
+  if (!cue) return null;
+  return { fixture, colour, cue };
+}
+
+function sendFixtureColour(fixtureId, colourId) {
+  const target = findColourControl(fixtureId, colourId);
+  if (!target) return false;
+  const { fixture, cue } = target;
+  ma2.send(`Goto Cue ${cue} Exec ${fixture.page}.${fixture.exec} Fade ${state.fadeTime}`);
+  state.fixtureColours[fixtureId] = colourId;
+  return true;
+}
+
+function setFixtureColour(fixtureId, colourId) {
+  if (sendFixtureColour(fixtureId, colourId)) broadcastState();
+}
+
+function setAllFixtureColours(colourId) {
+  let changed = false;
+  for (const fixture of config.colourControls.fixtures) {
+    changed = sendFixtureColour(fixture.id, colourId) || changed;
+  }
+  if (changed) broadcastState();
+}
+
+function setFixturePalette(paletteId) {
+  const palette = config.colourControls.palettes.find(p => p.id === paletteId);
+  if (!palette) return;
+  let changed = false;
+  for (const [fixtureId, colourId] of Object.entries(palette.colours)) {
+    changed = sendFixtureColour(fixtureId, colourId) || changed;
+  }
+  if (changed) broadcastState();
 }
 
 function selectCue(cueNumber) {
+  const assignedCue = findAssignedCue(cueNumber);
+  if (!assignedCue) {
+    console.warn('[Cue] Ignored unassigned or unknown cue request', { cueNumber });
+    return;
+  }
+
   state.activeCue = cueNumber;
   // If End of Night was active, firing a cue should release it.
   if (state.endOfNightActive) {
     const eotn = config.executors.endOfNight;
     ma2.send(`Off Exec ${eotn.page}.${eotn.exec}`);
     state.endOfNightActive = false;
-    setResolumeEndOfNightLayer(false);
   }
   const { page, exec } = config.cueStack;
   const fade = cueUsesZeroFade(cueNumber) ? 0 : state.fadeTime;
@@ -419,7 +630,6 @@ function setClear() {
     const { page: eotnPage, exec: eotnExec } = config.executors.endOfNight;
     ma2.send(`Off Exec ${eotnPage}.${eotnExec}`);
     state.endOfNightActive = false;
-    setResolumeEndOfNightLayer(false);
   }
   
   broadcastState();
@@ -431,14 +641,12 @@ function setEndOfNight(active) {
   ma2.send(`${active ? 'Go' : 'Off'} Exec ${page}.${exec}`);
 
   if (active) {
-    // EOTN takes over: release the main cue stack and clear panel-side
-    // confetti tracking so reload state is fresh for next night.
+    // EOTN takes over: release the main cue stack so reload state is fresh for next night.
     const cs = config.cueStack;
     ma2.send(`Off Exec ${cs.page}.${cs.exec}`);
     // Activate cue 141 (End of Night cue) with 1s fade
     ma2.send(`Goto Cue 141 Exec ${cs.page}.${cs.exec} Fade 1`);
     state.activeCue = 141;
-    state.confetti = Object.fromEntries(config.executors.confetti.map(c => [c.id, false]));
   } else {
     // When manually deactivating EOTN, clear cues
     const cs = config.cueStack;
@@ -447,21 +655,6 @@ function setEndOfNight(active) {
     state.activeCue = null;
   }
 
-  setResolumeEndOfNightLayer(active);
-
-  broadcastState();
-}
-
-function fireConfetti(cannonId) {
-  const cannon = config.executors.confetti.find(c => c.id === cannonId);
-  if (!cannon) return;
-  state.confetti[cannonId] = true;
-  ma2.send(`Go Exec ${cannon.page}.${cannon.exec}`);
-  broadcastState();
-}
-
-function resetConfetti() {
-  state.confetti = Object.fromEntries(config.executors.confetti.map(c => [c.id, false]));
   broadcastState();
 }
 
@@ -474,31 +667,90 @@ function setDisable(target, active) {
   broadcastState();
 }
 
-async function setDjSource(sourceId) {
-  const sources = config.resolume.videoSources;
-  if (!sources[sourceId]) return;
-  state.djSource = sourceId;
-  broadcastState();
-  try {
-    await Promise.all(
-      Object.entries(sources).map(([id, s]) =>
-        resolumeRequest('PUT', `/composition/layers/${s.layer}`, { master: { value: id === sourceId ? 1.0 : 0.0 } })
-      )
-    );
-  } catch (err) {
-    console.warn('[Resolume] Video source switch failed:', err.message);
+function validCueNumber(value) {
+  return Number.isFinite(value) && value > 0;
+}
+
+function findMaintenanceCue(scope, action, fixtureId) {
+  const maintenance = config.fixtureMaintenance;
+  const page = maintenance?.cueStack?.page;
+  const exec = maintenance?.cueStack?.exec;
+  if (!maintenance?.configured || !validCueNumber(page) || !validCueNumber(exec)) return null;
+
+  let cue;
+  if (scope === 'global') {
+    cue = maintenance.globalActions?.[action]?.cue;
+  } else if (scope === 'beam') {
+    const fixture = maintenance.beamFixtures?.find(f => f.id === fixtureId);
+    cue = fixture?.actions?.[action]?.cue;
+  }
+
+  if (!validCueNumber(cue)) return null;
+  return { page, exec, cue };
+}
+
+function dispatchMaintenanceCommand(scope, action, fixtureId) {
+  const assignment = findMaintenanceCue(scope, action, fixtureId);
+  if (!assignment) {
+    console.warn('[Maintenance] Cue ignored: missing maintenance cue mapping', { scope, action, fixtureId });
+    return;
+  }
+
+  ma2.send(`Goto Cue ${assignment.cue} Exec ${assignment.page}.${assignment.exec} Fade 0`);
+
+  if (scope === 'beam' && action === 'disable') {
+    state.disabledBeamFixtures[fixtureId] = true;
+    broadcastState();
+  } else if (scope === 'beam' && action === 'enable') {
+    state.disabledBeamFixtures[fixtureId] = false;
+    broadcastState();
   }
 }
 
-async function setBrightness(value) {
-  const v = Math.max(0, Math.min(100, Math.round(value)));
-  state.brightness = v;
+function findSpecialEffectCue(groupId, actionId) {
+  const effects = config.specialEffects;
+  const page = effects?.cueStack?.page;
+  const exec = effects?.cueStack?.exec;
+  if (!effects?.configured || !validCueNumber(page) || !validCueNumber(exec)) return null;
+
+  const group = effects.groups?.find(g => g.id === groupId);
+  const action = group?.actions?.find(a => a.id === actionId);
+  if (!validCueNumber(action?.cue)) return null;
+
+  return { page, exec, cue: action.cue };
+}
+
+function setSpecialEffectArm(groupId, armed) {
+  if (!state.specialEffects[groupId]) return;
+  state.specialEffects[groupId].armed = !!armed;
   broadcastState();
-  try {
-    await resolumeRequest('PUT', '/composition', { master: { value: v / 100 } });
-  } catch (err) {
-    console.warn('[Resolume] Brightness failed:', err.message);
+}
+
+function clearSpecialEffect(groupId) {
+  const groupState = state.specialEffects[groupId];
+  if (!groupState) return;
+  groupState.armed = false;
+  for (const actionId of Object.keys(groupState.fired)) groupState.fired[actionId] = false;
+  broadcastState();
+}
+
+function fireSpecialEffect(groupId, actionId) {
+  const groupState = state.specialEffects[groupId];
+  if (!groupState?.armed) {
+    console.warn('[SpecialEffects] Fire ignored: group is not armed', { groupId, actionId });
+    return;
   }
+
+  const assignment = findSpecialEffectCue(groupId, actionId);
+  if (!assignment) {
+    console.warn('[SpecialEffects] Fire ignored: missing cue mapping', { groupId, actionId });
+    return;
+  }
+
+  ma2.send(`Goto Cue ${assignment.cue} Exec ${assignment.page}.${assignment.exec} Fade 0`);
+  groupState.fired[actionId] = true;
+  groupState.armed = false;
+  broadcastState();
 }
 
 // ---------- HTTP / WS server ----------
@@ -520,7 +772,7 @@ if (fs.existsSync(clientDist)) {
     res.type('html').send(`
       <!doctype html>
       <html><body style="background:#0a0a0a;color:#fff;font-family:system-ui;padding:40px">
-        <h1>Trilogy Panel — backend running</h1>
+        <h1>Play Gloucester Room One Panel — backend running</h1>
         <p>Client build not found at <code>client/dist</code>.</p>
         <p>For dev: <code>npm run client:dev</code> (Vite proxies /ws → :3000)</p>
         <p>For prod build: <code>npm run client:build</code></p>
@@ -546,13 +798,17 @@ wss.on('connection', (ws) => {
       case 'cue':             return selectCue(msg.cueNumber);
       case 'endOfNight':      return setEndOfNight(msg.active);
       case 'clear':           return setClear();
-      case 'confetti':        return fireConfetti(msg.cannon);
-      case 'confettiReset':   return resetConfetti();
+      case 'fixtureColour':   return setFixtureColour(msg.fixture, msg.colour);
+      case 'allFixtureColours': return setAllFixtureColours(msg.colour);
+      case 'fixturePalette':  return setFixturePalette(msg.palette);
       case 'disable':         return setDisable(msg.target, msg.active);
-      case 'djSource':        return setDjSource(msg.source);
-      case 'brightness':      return setBrightness(msg.value);
+      case 'maintenance':     return dispatchMaintenanceCommand(msg.scope, msg.action, msg.fixtureId);
+      case 'specialEffectArm': return setSpecialEffectArm(msg.group, msg.armed);
+      case 'specialEffectFire': return fireSpecialEffect(msg.group, msg.action);
+      case 'specialEffectClear': return clearSpecialEffect(msg.group);
       case 'forceReconnectMa2':       return ma2.forceReconnect();
-      case 'forceReconnectResolume':  return pollResolume();
+      case 'linkEnable':      return link.setEnabled(msg.enabled);
+      case 'linkPush':        return link.pushTempo(true);
       case 'rawMa2': {
         if (typeof msg.command === 'string' && msg.command.trim()) {
           ma2.send(msg.command.trim());
@@ -568,21 +824,25 @@ server.listen(PORT, () => {
   console.log(`[Server] Listening on http://localhost:${PORT}`);
   console.log(`[Server] WebSocket at ws://localhost:${PORT}/ws`);
   ma2.connect();
-  startResolumePolling();
+  if (config.link?.enabled !== false || config.link) link.start();
 });
 
 // Periodic uptime broadcast (cheap, keeps Status tab live)
 setInterval(() => {
   if (wss && wss.clients.size > 0) {
-    broadcast({ type: 'tick', uptimeMs: Date.now() - startedAt, ma2DisconnectedAt: state.ma2DisconnectedAt, resolumeLastPollAt: state.resolumeLastPollAt });
+    broadcast({ type: 'tick', uptimeMs: Date.now() - startedAt, ma2DisconnectedAt: state.ma2DisconnectedAt });
   }
 }, 1000);
 
 // Graceful shutdown
 function shutdown() {
   console.log('\n[Server] Shutting down...');
-  if (resolumeTimer) clearInterval(resolumeTimer);
+  if (ma2.reconnectTimer) {
+    clearTimeout(ma2.reconnectTimer);
+    ma2.reconnectTimer = null;
+  }
   if (ma2.socket) ma2.socket.destroy();
+  link.stop();
   server.close(() => process.exit(0));
 }
 process.on('SIGINT', shutdown);

@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Starting trilogy-panel server...
+echo Starting play-gloucester-room-one-panel server...
 call "%~dp0scripts\start-panel-server.bat" logon
 if errorlevel 1 (
   echo Failed. See logs\panel-server.log

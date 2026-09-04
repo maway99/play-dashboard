@@ -4,7 +4,7 @@ const root = __dirname;
 
 module.exports = {
   apps: [{
-    name: 'trilogy-panel',
+    name: 'play-gloucester-room-one-panel',
     script: path.join(root, 'server.js'),
     cwd: root,
     interpreter: 'node',

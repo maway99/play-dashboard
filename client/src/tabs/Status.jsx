@@ -30,13 +30,12 @@ export default function Status({ state, tick, wsConnected, send }) {
   }, []);
 
   const ma2Connected = state.ma2 === 'connected';
-  const resolumeConnected = state.resolume === 'connected';
   const uptimeMs = tick?.uptimeMs ?? state.uptimeMs ?? 0;
   const ma2Off = tick?.ma2DisconnectedAt ?? state.ma2DisconnectedAt;
 
   return (
-    <div className="h-full grid grid-cols-12 grid-rows-12 gap-6">
-      <Card className="col-span-4 row-span-4">
+    <div className="h-full grid grid-cols-12 auto-rows-min content-start gap-4 overflow-hidden">
+      <Card className="col-span-6">
         <SectionHeader title="grandMA2" />
         <div className="flex items-center gap-3 mb-3">
           <span className={`status-dot ${ma2Connected ? 'bg-ok' : 'bg-bad pulse-red'}`} />
@@ -52,20 +51,7 @@ export default function Status({ state, tick, wsConnected, send }) {
         }
       </Card>
 
-      <Card className="col-span-4 row-span-4">
-        <SectionHeader title="Resolume" />
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`status-dot ${resolumeConnected ? 'bg-ok' : 'bg-bad'}`} />
-          <span className="text-white text-[18px] font-semibold">
-            {resolumeConnected ? 'Connected' : 'Offline'}
-          </span>
-        </div>
-        <Row label="Address" value={`${state.config.resolume.ip}:${state.config.resolume.port}`} />
-        <Row label="Last poll" value={formatRelative(state.resolumeLastPollAt)} />
-        <Row label="Last status" value={state.resolumeLastStatus ?? '—'} />
-      </Card>
-
-      <Card className="col-span-4 row-span-4">
+      <Card className="col-span-6">
         <SectionHeader title="Network / Panel" />
         <div className="flex items-center gap-3 mb-3">
           <span className={`status-dot ${wsConnected ? 'bg-info' : 'bg-bad'}`} />
@@ -77,43 +63,69 @@ export default function Status({ state, tick, wsConnected, send }) {
         <Row label="Server uptime" value={formatUptime(uptimeMs)} />
       </Card>
 
-      <Card className="col-span-8 row-span-5">
+      <Card className="col-span-6">
+        <SectionHeader title="Ableton Link" />
+        {state.link ? (
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              <span className={`status-dot ${state.link.source === 'link' ? 'bg-ok' : state.link.carabiner === 'connected' ? 'bg-white/30' : 'bg-bad'}`} />
+              <span className="text-white text-[18px] font-semibold tabular-nums">
+                {state.link.bpm} BPM
+                <span className="text-muted text-[14px] font-normal ml-2">
+                  {state.link.source === 'link' ? 'from Link' : `default (${state.config.link?.defaultBpm ?? state.link.bpm})`}
+                </span>
+              </span>
+            </div>
+            <Row label="Following Link" value={state.link.enabled ? 'yes' : 'no (held at default)'} />
+            <Row label="Carabiner bridge" value={`${state.link.carabiner} · ${state.config.link?.carabiner?.host}:${state.config.link?.carabiner?.port}`} />
+            <Row label="Link peers" value={state.link.peers} />
+            <Row label="Link session tempo" value={state.link.linkBpm != null ? `${state.link.linkBpm} BPM` : '—'} />
+            <Row label="MA2 speed master" value={`SpecialMaster 3.${state.config.link?.speedMaster ?? 1}`} />
+            <Row label="Last sent to MA2" value={state.link.lastSentCommand ? `${state.link.lastSentCommand} · ${formatRelative(state.link.lastSentAt)}` : '—'} mono />
+          </>
+        ) : (
+          <Row label="Link" value="not configured" />
+        )}
+      </Card>
+
+      <Card className="col-span-6">
         <SectionHeader title="Diagnostics" />
         <Row label="Last MA2 command" value={state.ma2LastCommand ?? '—'} mono />
         <Row label="Last MA2 response" value={(state.ma2LastResponse ?? '—').slice(0, 120)} mono />
-        <Row label="Last Resolume HTTP" value={state.resolumeLastStatus ?? '—'} />
         <Row label="Active cue" value={state.activeCue ?? '—'} />
         <Row label="Active disables" value={
           Object.entries(state.disables).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'
         } />
       </Card>
 
-      <Card className="col-span-4 row-span-5">
+      <Card className="col-span-12">
         <SectionHeader title="Manual Actions" />
         <div className="flex flex-col gap-3 flex-1">
-          <button
-            onClick={() => send({ type: 'forceReconnectMa2' })}
-            className="btn btn-default text-[13px] tracking-wider"
-            style={{ minHeight: 48 }}
-          >
-            FORCE RECONNECT MA2
-          </button>
-          <button
-            onClick={() => send({ type: 'forceReconnectResolume' })}
-            className="btn btn-default text-[13px] tracking-wider"
-            style={{ minHeight: 48 }}
-          >
-            FORCE RECONNECT RESOLUME
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => send({ type: 'forceReconnectMa2' })}
+              className="btn btn-default h-[var(--ctl-h)] text-[13px] font-semibold tracking-wider"
+              style={{ minHeight: 0 }}
+            >
+              FORCE RECONNECT MA2
+            </button>
+            <button
+              onClick={() => send({ type: 'linkPush' })}
+              title="Send the current tempo to the MA2 speed master again"
+              className="btn btn-default h-[var(--ctl-h)] text-[13px] font-semibold tracking-wider"
+              style={{ minHeight: 0 }}
+            >
+              RESEND TEMPO TO MA2
+            </button>
+          </div>
           <RawCommandField send={send} />
         </div>
       </Card>
 
-      <Card className="col-span-12 row-span-3">
+      <Card className="col-span-12">
         <SectionHeader title="System Info" />
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           <Row label="MA2 host" value={`${state.config.ma2.ip}:${state.config.ma2.port}`} />
-          <Row label="Resolume host" value={`${state.config.resolume.ip}:${state.config.resolume.port}`} />
           <Row label="Cue stack" value={`P${state.config.cueStack.page}.${state.config.cueStack.exec}`} />
           <Row label="Default fade" value={`${state.config.defaults.fadeTime.toFixed(1)}s`} />
         </div>
@@ -123,11 +135,11 @@ export default function Status({ state, tick, wsConnected, send }) {
 }
 
 function Card({ className = '', children }) {
-  return <section className={`panel p-5 flex flex-col ${className}`}>{children}</section>;
+  return <section className={`panel px-5 py-4 flex flex-col ${className}`}>{children}</section>;
 }
 
 function SectionHeader({ title }) {
-  return <div className="section-header mb-4">{title}</div>;
+  return <div className="section-header mb-3">{title}</div>;
 }
 
 function RawCommandField({ send }) {
@@ -138,7 +150,7 @@ function RawCommandField({ send }) {
     setCmd('');
   };
   return (
-    <div className="mt-auto pt-3 border-t border-border/40">
+    <div className="pt-3 border-t border-border/40">
       <div className="section-header mb-2">Send Raw MA2 Command</div>
       <div className="flex gap-2">
         <input
@@ -146,14 +158,14 @@ function RawCommandField({ send }) {
           onChange={(e) => setCmd(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
           placeholder="Goto Cue 1 Exec 1.1"
-          className="flex-1 bg-btn border border-border/70 rounded-ui px-3 py-2 text-white text-[13px] font-mono focus:outline-none focus:border-white/50"
+          className="flex-1 min-w-0 h-[var(--ctl-sm)] bg-btn border border-border/70 rounded-ui px-3 text-white text-[14px] font-mono focus:outline-none focus:border-white/50"
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
         />
         <button
           onClick={submit}
-          className="btn btn-default text-[12px] tracking-wider px-4"
+          className="btn btn-default h-[var(--ctl-sm)] text-[12px] font-semibold tracking-wider px-5"
           style={{ minHeight: 0 }}
         >
           SEND
