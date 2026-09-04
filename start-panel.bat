@@ -1,12 +1,105 @@
 @echo off
+REM Play Gloucester Room One Panel — start everything.
+REM Launches grandMA2 onPC, starts the panel server, then opens Chrome kiosk.
+REM Called by Task Scheduler at logon, or run manually to restart everything.
+
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
-echo Starting play-gloucester-room-one-panel server...
-call "%~dp0scripts\start-panel-server.bat" logon
-if errorlevel 1 (
-  echo Failed. See logs\panel-server.log
-  pause
-  exit /b 1
+set "ROOT=%CD%"
+
+set "LOGDIR=%ROOT%\logs"
+if not exist "%LOGDIR%" mkdir "%LOGDIR%"
+set "LOG=%LOGDIR%\startup.log"
+
+echo.>>"%LOG%"
+echo ==================================================>>="%LOG%"
+echo [%date% %time%] start-panel>>"%LOG%"
+
+REM -----------------------------------------------------------------------
+REM 1. Launch grandMA2 onPC (if not already running)
+REM -----------------------------------------------------------------------
+REM Search for gma2onpc.exe under the versioned install folder (e.g. "grandMA2 onPC 3.9.61.5").
+set "GMA2="
+for /d %%D in ("%ProgramFiles%\MA Lighting Technologies\grandma\grandMA2 onPC*") do (
+    if exist "%%D\gma2onpc.exe" set "GMA2=%%D\gma2onpc.exe"
 )
-echo Server running at http://127.0.0.1:3000
-pause
+if not defined GMA2 (
+    for /d %%D in ("%ProgramFiles(x86)%\MA Lighting Technologies\grandma\grandMA2 onPC*") do (
+        if exist "%%D\gma2onpc.exe" set "GMA2=%%D\gma2onpc.exe"
+    )
+)
+
+echo [1/3] grandMA2 onPC...
+if not defined GMA2 (
+    echo       Not found under Program Files - skipping
+    echo [1/3] gma2onpc not found - skipping>>"%LOG%"
+    goto :start_server
+)
+
+tasklist /FI "IMAGENAME eq gma2onpc.exe" 2>nul | find /I "gma2onpc.exe" >nul 2>&1
+if not errorlevel 1 (
+    echo       Already running
+    echo [1/3] gma2onpc already running>>"%LOG%"
+    goto :start_server
+)
+
+echo       Launching...
+echo [1/3] Launching gma2onpc>>"%LOG%"
+start "" "%GMA2%"
+
+REM Dismiss the fader wing popup in a parallel minimised window.
+REM It waits ~15s for the popup then sends Enter — runs alongside server start.
+start "Play Gloucester Room One - Dismiss Popup" /MIN powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\dismiss-gma2-popup.ps1"
+
+:start_server
+REM -----------------------------------------------------------------------
+REM 2. Start panel server via PM2 (with direct-node fallback)
+REM -----------------------------------------------------------------------
+echo [2/3] Starting panel server...
+echo [2/3] Starting panel server>>"%LOG%"
+
+set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
+call "%ROOT%\scripts\start-panel-server.bat" logon >>"%LOG%" 2>&1
+if errorlevel 1 (
+    echo       Server failed to start - check logs\startup.log
+    pause
+    exit /b 1
+)
+
+REM -----------------------------------------------------------------------
+REM 3. Launch Chrome in kiosk mode
+REM -----------------------------------------------------------------------
+echo [3/3] Launching Chrome kiosk...
+echo [3/3] Launching Chrome kiosk>>"%LOG%"
+
+set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" (
+    echo       ERROR: Google Chrome not found. Install it first.
+    echo [3/3] ERROR: Chrome not found>>"%LOG%"
+    pause
+    exit /b 1
+)
+
+if exist "%ROOT%\scripts\close-play-gloucester-room-one-chrome.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\close-play-gloucester-room-one-chrome.ps1" >>"%LOG%" 2>&1
+)
+
+echo       Opening http://127.0.0.1:3000
+start "" "%CHROME%" ^
+  --kiosk ^
+  --app=http://127.0.0.1:3000/ ^
+  --disable-infobars ^
+  --noerrdialogs ^
+  --no-first-run ^
+  --no-default-browser-check ^
+  --disable-session-crashed-bubble ^
+  --disable-restore-session-state ^
+  --disable-features=TranslateUI,MediaRouter ^
+  --disable-pinch ^
+  --overscroll-history-navigation=0 ^
+  --user-data-dir="%LOCALAPPDATA%\Play Gloucester Room One Panel Chrome"
+
+echo [3/3] Kiosk started>>"%LOG%"
+echo Done.
 exit /b 0

@@ -24,7 +24,7 @@ Panel talks to its own backend on `localhost:3000` via WebSocket. Backend talks 
 
 `setup.bat` is the full installer (plain batch). It installs dependencies, builds the client, starts PM2, registers auto-start (Task Scheduler **and** Startup folder), opens Chrome kiosk once at the end, then you reboot to confirm logon auto-start.
 
-If Chrome does not open after reboot: run `troubleshoot-startup.bat` and check `logs\kiosk-startup.log`.
+If Chrome does not open after reboot: run `start-panel.bat` manually and check the `logs\` folder.
 
 Prerequisites (install manually before running setup):
 
@@ -288,12 +288,14 @@ server.js              # Express + WS + MA2 telnet
 config.json            # All venue-specific mappings + IPs + labels
 ecosystem.config.cjs   # PM2 process definition
 setup.bat              # First-time installer (run as admin)
-setup.ps1              # Installer logic (called by setup.bat)
-start-panel.bat        # Start/restart server only (new PC after Node installed)
-scripts/pm2-ensure-panel.bat  # PM2 helper (used by setup/update/startup)
+start-panel.bat        # Start everything: MA2 onPC, panel server, Chrome kiosk (Task Scheduler runs this at logon)
 update.bat             # One-click updater
-startup-chrome.bat     # Chrome kiosk launcher (Task Scheduler runs this)
-startup.bat            # Calls startup-chrome.bat
+scripts/pm2-ensure-panel.bat  # PM2 helper (used by setup/update/start)
+scripts/start-panel-server.bat
+scripts/dismiss-gma2-popup.ps1        # Clears the onPC start-up dialog
+scripts/close-play-gloucester-room-one-chrome.ps1  # Closes only the kiosk Chrome profile
+scripts/get-carabiner.ps1             # Downloads the Ableton Link bridge into tools\
+tools/                 # Carabiner binary (not in git)
 client/                # React + Vite source
 client/dist/           # Built frontend (Express serves from here)
 LAUNCH_CHECKLIST.md    # Pre-go-live verification checklist
