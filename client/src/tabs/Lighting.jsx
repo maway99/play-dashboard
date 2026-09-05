@@ -4,7 +4,7 @@ import SpecialEffectsControls from './SpecialEffects.jsx';
 const AUTO_INTERVAL_MS = 15000;
 const VISIBLE_CUES_PER_BANK = 15;
 const AUTO_CUE_BANKS = ['slowCues', 'mainCues'];
-const PRIMARY_CUE_BANKS = ['slowCues', 'mainCues', 'buildups', 'laserCues'];
+const PRIMARY_CUE_BANKS = [['slowCues', 'strobeCues'], 'mainCues', 'buildups', 'laserCues'];
 
 // Display labels are Title Case regardless of how they're typed in config.
 const titleCase = (text) => String(text ?? '').replace(/\b\p{L}/gu, (ch) => ch.toUpperCase());
@@ -492,6 +492,28 @@ function CueBanks({
       }}
     >
       {bankKeys.map((key) => {
+        if (Array.isArray(key)) {
+          return (
+            <div key={key.join('-')} className="grid grid-cols-2 gap-4 min-h-0 min-w-0">
+              {key.map((groupedKey) => {
+                const groupedBank = banks[groupedKey];
+                if (!groupedBank) return null;
+                return (
+                  <BankBlock
+                    key={groupedKey}
+                    bankKey={groupedKey}
+                    bank={groupedBank}
+                    activeCue={activeCue}
+                    onSelect={onSelect}
+                    isAutoRunning={autoBank === groupedKey}
+                    autoNextCue={autoBank === groupedKey ? autoNextCue : null}
+                    buttonColumns={groupedKey === 'slowCues' ? 3 : 2}
+                  />
+                );
+              })}
+            </div>
+          );
+        }
         const bank = banks[key];
         if (!bank) return null;
         return (

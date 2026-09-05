@@ -542,7 +542,7 @@ function setFadeTime(value) {
   broadcastState();
 }
 
-const ZERO_FADE_CUE_BANKS = ['laserCues', 'buildups'];
+const ZERO_FADE_CUE_BANKS = ['laserCues', 'buildups', 'strobeCues'];
 
 function findAssignedCue(cueNumber) {
   if (!Number.isFinite(cueNumber)) return null;
@@ -571,7 +571,12 @@ function sendFixtureColour(fixtureId, colourId) {
   const target = findColourControl(fixtureId, colourId);
   if (!target) return false;
   const { fixture, cue } = target;
-  ma2.send(`Goto Cue ${cue} Exec ${fixture.page}.${fixture.exec} Fade ${state.fadeTime}`);
+  const executor = fixture.executorOverrides?.[colourId];
+  if (Number.isFinite(executor?.page) && Number.isFinite(executor?.exec)) {
+    ma2.send(`Goto Cue ${cue} Exec ${executor.page}.${executor.exec} Fade ${state.fadeTime}`);
+  } else {
+    ma2.send(`Goto Cue ${cue} Exec ${fixture.page}.${fixture.exec} Fade ${state.fadeTime}`);
+  }
   state.fixtureColours[fixtureId] = colourId;
   return true;
 }
@@ -759,6 +764,60 @@ app.use(express.json());
 
 app.get('/api/state', (_req, res) => res.json(snapshotState()));
 app.get('/api/health', (_req, res) => res.json({ ok: true, uptimeMs: Date.now() - startedAt }));
+
+app.post('/api/actions/fixture-colour', (req, res) => {
+  const fixture = typeof req.body?.fixture === 'string' ? req.body.fixture : '';
+  const colour = typeof req.body?.colour === 'string' ? req.body.colour : '';
+  const target = findColourControl(fixture, colour);
+
+  if (!target) {
+    return res.status(400).json({ ok: false, error: 'Unknown fixture or colour' });
+  }
+
+  setFixtureColour(fixture, colour);
+  return res.json({
+    ok: true,
+    fixture,
+    colour,
+    ma2: state.ma2
+  });
+});
+
+app.post('/api/actions/stream-deck-sequence', (req, res) => {
+  const action = typeof req.body?.action === 'string' ? req.body.action : '';
+  const target = config.executors.streamDeckSequences?.[action];
+
+  if (!target || !Number.isFinite(target.page) || !Number.isFinite(target.exec) || !Number.isFinite(target.cue)) {
+    return res.status(400).json({ ok: false, error: 'Unknown Stream Deck sequence action' });
+  }
+
+  ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 0`);
+  return res.json({
+    ok: true,
+    action,
+    page: target.page,
+    exec: target.exec,
+    cue: target.cue,
+    ma2: state.ma2
+  });
+});
+
+app.post('/api/actions/stream-deck-momentary', (req, res) => {
+  const action = typeof req.body?.action === 'string' ? req.body.action : '';
+  const phase = req.body?.phase === 'release' ? 'release' : 'press';
+  const target = config.executors.streamDeckSequences?.[action];
+
+  if (!target || !Number.isFinite(target.page) || !Number.isFinite(target.exec)) {
+    return res.status(400).json({ ok: false, error: 'Unknown Stream Deck momentary action' });
+  }
+
+  const command = phase === 'release'
+    ? `Off Exec ${target.page}.${target.exec}`
+    : `Go Exec ${target.page}.${target.exec}`;
+  ma2.send(command);
+
+  return res.json({ ok: true, action, phase, command, ma2: state.ma2 });
+});
 
 // Serve built client if present
 const clientDist = path.join(__dirname, 'client', 'dist');

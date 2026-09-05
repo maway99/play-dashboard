@@ -3,7 +3,7 @@
     "port": 3000
   },
   "ma2": {
-    "ip": "127.0.0.1",
+    "ip": "2.0.0.10",
     "port": 30000,
     "username": "administrator",
     "password": "admin",
@@ -28,7 +28,7 @@
     }
   },
   "cueStack": {
-    "page": 1,
+    "page": 4,
     "exec": 1
   },
   "colourControls": {
@@ -124,7 +124,7 @@
       {
         "id": "beams",
         "label": "Beams",
-        "page": 2,
+        "page": 1,
         "exec": 1,
         "cues": {
           "open": 1,
@@ -144,28 +144,8 @@
       {
         "id": "strobes",
         "label": "Strobes",
-        "page": 2,
+        "page": 1,
         "exec": 2,
-        "cues": {
-          "open": 1,
-          "red": 2,
-          "green": 3,
-          "blue": 4,
-          "yellow": 5,
-          "orange": 6,
-          "roseRed": 7,
-          "lightBlue": 8,
-          "grassGreen": 9,
-          "cyan": 10,
-          "filter3200": 11,
-          "filter5600": 12
-        }
-      },
-      {
-        "id": "pinSpots",
-        "label": "Pin Spots",
-        "page": 2,
-        "exec": 3,
         "cues": {
           "open": 1,
           "red": 2,
@@ -209,7 +189,6 @@
         "colours": {
           "beams": "open",
           "strobes": "cyan",
-          "pinSpots": "lightBlue",
           "lasers": "cyan"
         }
       },
@@ -219,7 +198,6 @@
         "colours": {
           "beams": "filter3200",
           "strobes": "open",
-          "pinSpots": "orange",
           "lasers": "yellow"
         }
       },
@@ -229,7 +207,6 @@
         "colours": {
           "beams": "green",
           "strobes": "open",
-          "pinSpots": "grassGreen",
           "lasers": "green"
         }
       },
@@ -239,7 +216,6 @@
         "colours": {
           "beams": "roseRed",
           "strobes": "blue",
-          "pinSpots": "roseRed",
           "lasers": "lightBlue"
         }
       },
@@ -249,7 +225,6 @@
         "colours": {
           "beams": "red",
           "strobes": "open",
-          "pinSpots": "orange",
           "lasers": "red"
         }
       },
@@ -259,7 +234,6 @@
         "colours": {
           "beams": "blue",
           "strobes": "lightBlue",
-          "pinSpots": "blue",
           "lasers": "blue"
         }
       },
@@ -269,7 +243,6 @@
         "colours": {
           "beams": "red",
           "strobes": "orange",
-          "pinSpots": "yellow",
           "lasers": "red"
         }
       },
@@ -279,7 +252,6 @@
         "colours": {
           "beams": "grassGreen",
           "strobes": "yellow",
-          "pinSpots": "green",
           "lasers": "grassGreen"
         }
       },
@@ -289,7 +261,6 @@
         "colours": {
           "beams": "roseRed",
           "strobes": "cyan",
-          "pinSpots": "yellow",
           "lasers": "lightBlue"
         }
       },
@@ -299,7 +270,6 @@
         "colours": {
           "beams": "filter3200",
           "strobes": "filter3200",
-          "pinSpots": "filter3200",
           "lasers": "filter3200"
         }
       },
@@ -807,27 +777,23 @@
       "cues": [
         {
           "id": "main-01",
-          "label": "Main bounce",
-          "cue": null,
-          "placeholder": true
+          "label": "Basic Circular Fade",
+          "cue": 1
         },
         {
           "id": "main-02",
-          "label": "Club chase",
-          "cue": null,
-          "placeholder": true
+          "label": "Tilt Snap BPM",
+          "cue": 2
         },
         {
           "id": "main-03",
-          "label": "Beam fan",
-          "cue": null,
-          "placeholder": true
+          "label": "Circle Alt BPM",
+          "cue": 3
         },
         {
           "id": "main-04",
-          "label": "Room sweep",
-          "cue": null,
-          "placeholder": true
+          "label": "Beams / Strobes Alt BPM",
+          "cue": 4
         },
         {
           "id": "main-05",
@@ -894,6 +860,21 @@
           "label": "Full room",
           "cue": null,
           "placeholder": true
+        }
+      ]
+    },
+    "strobeCues": {
+      "label": "Strobes",
+      "cues": [
+        {
+          "id": "strobe-cue-05",
+          "label": "Alt Strobe Circle",
+          "cue": 5
+        },
+        {
+          "id": "strobe-cue-06",
+          "label": "Outward Strobe Circle",
+          "cue": 6
         }
       ]
     },
@@ -1089,6 +1070,20 @@
     }
   },
   "executors": {
+    "streamDeckSequences": {
+      "whiteStrobe": {
+        "label": "White strobe",
+        "page": 1,
+        "exec": 101,
+        "cue": 1
+      },
+      "whiteFlash": {
+        "label": "White flash",
+        "page": 1,
+        "exec": 102,
+        "cue": 1
+      }
+    },
     "haze": {
       "page": 1,
       "exec": 6

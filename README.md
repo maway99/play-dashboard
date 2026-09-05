@@ -102,7 +102,7 @@ All venue-specific values live here. **No hardcoded values in code.**
 | `ma2.password`   | Whatever you set in MA2's Telnet Remote settings                            |
 | `cueStack`       | Page/exec of the single cue stack the panel drives                          |
 | `colourControls.colours` | Shared colour set for fixture rows, constrained to the Betopper CLB260-O wheel |
-| `colourControls.fixtures` | Page/exec and cue mappings for Beams, Strobes, Pin Spots, and Lasers |
+| `colourControls.fixtures` | Page/exec and cue mappings for Beams, Strobes, and Lasers |
 | `colourControls.palettes` | Coordinated fixture colour presets shown in the palettes row          |
 | `fixtureMaintenance` | Maintenance-tab rig layout plus lamp/reset/disable cue mappings       |
 | `specialEffects` | Lighting-tab Confetti and CO2 arm/fire controls plus cue mappings      |
