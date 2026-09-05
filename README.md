@@ -101,11 +101,10 @@ All venue-specific values live here. **No hardcoded values in code.**
 | `ma2.ip`         | `127.0.0.1` if panel is on the same PC as onPC (recommended)                |
 | `ma2.password`   | Whatever you set in MA2's Telnet Remote settings                            |
 | `cueStack`       | Page/exec of the single cue stack the panel drives                          |
-| `colourControls.colours` | Shared colour set for fixture rows, constrained to the Betopper CLB260-O wheel |
-| `colourControls.fixtures` | Page/exec and cue mappings for Beams, Strobes, and Lasers |
-| `colourControls.palettes` | Coordinated fixture colour presets shown in the palettes row          |
+| `colourControls.*` | Legacy/API fixture-colour cue mappings; the Lighting page no longer renders the colour picker |
 | `fixtureMaintenance` | Maintenance-tab rig layout plus lamp/reset/disable cue mappings       |
 | `specialEffects` | Lighting-tab Confetti and CO2 arm/fire controls plus cue mappings      |
+| `streamDeck.companion` | Bitfocus Companion bridge host plus Stream Deck button locations |
 | `cueBanks.*`     | Lighting cue-library buttons; `cue: null` means unassigned and will not dispatch |
 | `executors.haze` | Fader executor for haze level                                               |
 | `executors.endOfNight` | Toggle exec for the End-of-Night sequence                             |
@@ -116,7 +115,7 @@ All venue-specific values live here. **No hardcoded values in code.**
 
 ### Cue library
 
-The Lighting tab starts with named placeholder cue entries for Slow Cues, Main Cues, Buildups, and Laser Cues. These entries are intentionally named without colours because fixture colour is controlled only by the separate Fixture colours section. A placeholder with `cue: null` is visible for layout and operator planning but will not dispatch until an exact MA2 cue number is assigned.
+The Lighting tab starts with named placeholder cue entries for Slow Cues, Strobes, Main Cues, Laser Cues, and Buildups. A placeholder with `cue: null` is visible for layout and operator planning but will not dispatch until an exact MA2 cue number is assigned.
 
 Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. Placeholder buttons are visible in the panel but do not dispatch MA2 commands until a finite cue number is assigned.
 
@@ -133,6 +132,34 @@ To activate special effects, provide exact grandMA2 cue assignments for:
 - `specialEffects.groups[co2].actions[fire].cue`
 
 Do not enable these cues until the physical effect routing has been verified against the final grandMA2 show file.
+
+### Stream Deck / Companion bridge
+
+The server can watch selected Bitfocus Companion buttons through Companion's local HTTP API and keep arm-button feedback in sync with the dashboard. `streamDeck.companion.baseUrl` defaults to `http://127.0.0.1:8000`. Button `page`, `row`, and `column` values are zero-based for the row and column numbers used by Companion's `/api/location/:page/:row/:column` routes.
+
+The current mapping watches:
+
+| Button | Companion page/row/column | Panel action | MA2 assignment |
+|--------|----------------------------|--------------|----------------|
+| Strobes - White | `1 / 0 / 0` | Momentary MA2 sequence | `Cue 1 Exec 1.101` |
+| Strobes - White rnd | `1 / 0 / 1` | Momentary MA2 sequence | `Cue 1 Exec 1.103` |
+| Strobes - Red | `1 / 0 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.104` |
+| Strobes - Blue | `1 / 0 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.105` |
+| Control - Clear | `1 / 0 / 6` | Dashboard Clear | Uses `Off Fader 4`, `Off Exec 4.1`, and clears End of Night if active |
+| Control - Blackout | `1 / 0 / 7` | Momentary MA2 sequence | `Cue 1 Exec 1.109` |
+| Flashes - White | `1 / 1 / 0` | Momentary MA2 sequence | `Cue 1 Exec 1.102` |
+| Flashes - White chase | `1 / 1 / 1` | Momentary MA2 sequence | `Cue 1 Exec 1.106` |
+| Flashes - Red | `1 / 1 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.107` |
+| Flashes - Blue | `1 / 1 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.108` |
+| Confetti - Arm | `1 / 1 / 6` | Dashboard arm toggle | Local panel state |
+| CO2 - Arm | `1 / 1 / 7` | Dashboard arm toggle | Local panel state |
+| Confetti - Fire 1 | `1 / 2 / 6` | Fire-key visual feedback | Follows Confetti arm state |
+| CO2 - Fire | `1 / 2 / 7` | Fire-key visual feedback | Follows CO2 arm state |
+| Confetti - Fire 2 | `1 / 3 / 6` | Fire-key visual feedback | Follows Confetti arm state |
+
+Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the same local arm state shown on the Lighting dashboard, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. Fire buttons grey out when their effect group is disarmed and switch to the armed warning style when armed.
+
+`pollMs`, `confirmPolls`, and per-button `cooldownMs` control how quickly a physical press is accepted while filtering short Companion state blips.
 
 ### Fixture colour wheel
 

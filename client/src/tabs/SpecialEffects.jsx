@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Confetti / CO2 arm-and-fire panel plus global lamp power.
- * Hidden on the Lighting page unless config.specialEffects.showOnLightingPage is true
- * (confetti is normally driven from the Stream Deck).
+ * Stream Deck endpoints can trigger the same mapped effects separately.
  */
 export default function SpecialEffectsControls({ config, maintenance, state = {}, send }) {
   const [pendingLampOff, setPendingLampOff] = useState(false);
@@ -98,11 +97,8 @@ export default function SpecialEffectsControls({ config, maintenance, state = {}
               </button>
 
               <div
-                className="grid gap-2 flex-1 mt-2"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.min(group.actions.length, 2)}, minmax(0, 1fr))`,
-                  minHeight: 'var(--fire-min)'
-                }}
+                className="grid grid-cols-1 gap-2 flex-1 mt-2"
+                style={{ minHeight: 'var(--fire-min)' }}
               >
                 {group.actions.map((action) => {
                   const mapped = hasCue(group, action);
@@ -138,16 +134,18 @@ export default function SpecialEffectsControls({ config, maintenance, state = {}
                 })}
               </div>
 
-              <button
-                type="button"
-                onClick={() => send({ type: 'specialEffectClear', group: group.id })}
-                aria-label={`Clear ${group.label} arm and fired indicators`}
-                title={`Clear ${group.label} arm and fired indicators`}
-                className="btn h-[var(--ctl-xs)] flex-none mt-2 w-full px-3 text-[11px] font-semibold tracking-[0.14em] bg-transparent text-muted border border-white/15 hover:border-white/35 hover:text-white"
-                style={{ minHeight: 0 }}
-              >
-                CLEAR
-              </button>
+              {group.id === 'confetti' && (
+                <button
+                  type="button"
+                  onClick={() => send({ type: 'specialEffectClear', group: group.id })}
+                  aria-label={`Clear ${group.label} arm and fired indicators`}
+                  title={`Clear ${group.label} arm and fired indicators`}
+                  className="btn h-[var(--ctl-xs)] flex-none mt-2 w-full px-3 text-[11px] font-semibold tracking-[0.14em] bg-transparent text-muted border border-white/15 hover:border-white/35 hover:text-white"
+                  style={{ minHeight: 0 }}
+                >
+                  CLEAR
+                </button>
+              )}
             </div>
           );
         })}

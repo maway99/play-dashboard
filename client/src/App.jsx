@@ -19,19 +19,20 @@ export default function App() {
   }
 
   const panelReconnecting = !wsConnected && !!state;
+  const visibleTab = tab === 'control' ? 'lighting' : tab;
 
   return (
     <div className="w-screen h-screen flex bg-bg overflow-hidden">
-      <Sidebar active={tab} onChange={setTab} state={state} />
+      <Sidebar active={visibleTab} onChange={setTab} state={state} />
       <main className="flex-1 h-full flex flex-col min-h-0 overflow-hidden">
         {panelReconnecting && (
           <OfflineBanner visible title="PANEL SERVER OFFLINE" subtitle="Reconnecting" />
         )}
 
         <div className="flex-1 min-h-0 overflow-hidden p-[var(--page-pad)]">
-          {tab === 'lighting' && <Lighting state={state} send={send} />}
-          {tab === 'control'  && <Control  state={state} send={send} />}
-          {tab === 'status'   && <Status   state={state} tick={tick} wsConnected={wsConnected} send={send} />}
+          {visibleTab === 'lighting' && <Lighting state={state} send={send} />}
+          {visibleTab === 'control'  && <Control  state={state} send={send} />}
+          {visibleTab === 'status'   && <Status   state={state} tick={tick} wsConnected={wsConnected} send={send} />}
         </div>
       </main>
     </div>

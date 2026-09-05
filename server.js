@@ -63,6 +63,7 @@ function resetLightingNeutral() {
     }
   ]));
   for (const k of Object.keys(state.disables)) state.disables[k] = false;
+  scheduleCompanionArmFeedbackSync();
 }
 
 // ---------- WebSocket broadcast ----------
@@ -640,6 +641,28 @@ function setClear() {
   broadcastState();
 }
 
+function triggerStreamDeckSequence(action) {
+  const target = config.executors.streamDeckSequences?.[action];
+
+  if (!target || !Number.isFinite(target.page) || !Number.isFinite(target.exec) || !Number.isFinite(target.cue)) {
+    return null;
+  }
+
+  ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 0`);
+  return target;
+}
+
+function releaseStreamDeckSequence(action) {
+  const target = config.executors.streamDeckSequences?.[action];
+
+  if (!target || !Number.isFinite(target.page) || !Number.isFinite(target.exec)) {
+    return null;
+  }
+
+  ma2.send(`Off Exec ${target.page}.${target.exec}`);
+  return target;
+}
+
 function setEndOfNight(active) {
   state.endOfNightActive = !!active;
   const { page, exec } = config.executors.endOfNight;
@@ -729,6 +752,7 @@ function setSpecialEffectArm(groupId, armed) {
   if (!state.specialEffects[groupId]) return;
   state.specialEffects[groupId].armed = !!armed;
   broadcastState();
+  scheduleCompanionArmFeedbackSync();
 }
 
 function clearSpecialEffect(groupId) {
@@ -737,6 +761,7 @@ function clearSpecialEffect(groupId) {
   groupState.armed = false;
   for (const actionId of Object.keys(groupState.fired)) groupState.fired[actionId] = false;
   broadcastState();
+  scheduleCompanionArmFeedbackSync();
 }
 
 function fireSpecialEffect(groupId, actionId) {
@@ -756,6 +781,269 @@ function fireSpecialEffect(groupId, actionId) {
   groupState.fired[actionId] = true;
   groupState.armed = false;
   broadcastState();
+  scheduleCompanionArmFeedbackSync();
+}
+
+// ---------- Bitfocus Companion Stream Deck bridge ----------
+const companionState = {
+  previousActive: new Map(),
+  activeCounts: new Map(),
+  variableValues: new Map(),
+  lastButtonPressAt: new Map(),
+  pollTimer: null,
+  polling: false,
+  primed: false,
+  enabled: false,
+  reachable: false,
+  lastError: null,
+  lastPollAt: null,
+  lastActionAt: null,
+  lastAction: null,
+  feedbackTimer: null
+};
+
+function companionConfig() {
+  return config.streamDeck?.companion ?? {};
+}
+
+function configuredCompanionButtons() {
+  const buttons = companionConfig().buttons ?? {};
+  return Object.entries(buttons).filter(([, button]) =>
+    Number.isFinite(button.page) &&
+    Number.isFinite(button.row) &&
+    Number.isFinite(button.column)
+  );
+}
+
+function companionUrl(pathname) {
+  const baseUrl = companionConfig().baseUrl ?? 'http://127.0.0.1:8000';
+  return new URL(pathname, baseUrl.replace(/\/+$/, '') + '/');
+}
+
+async function companionRequest(pathname, options = {}) {
+  const timeoutMs = companionConfig().timeoutMs ?? 700;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(companionUrl(pathname), { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function readCompanionButtonActive(button) {
+  const variable = `b_active_${button.page}_${button.row}_${button.column}`;
+  const response = await companionRequest(`/api/variable/internal/${variable}/value`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Companion variable read failed (${response.status})`);
+  const value = (await response.text()).trim();
+  return value === 'true' || value === '1';
+}
+
+async function readCompanionCustomVariable(name) {
+  if (!name) return null;
+  const response = await companionRequest(`/api/custom-variable/${encodeURIComponent(name)}/value`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Companion custom variable read failed (${response.status})`);
+  return (await response.text()).trim();
+}
+
+async function setCompanionCustomVariable(name, value) {
+  if (!name) return;
+  const response = await companionRequest(`/api/custom-variable/${encodeURIComponent(name)}/value`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: String(value)
+  });
+  if (!response.ok) throw new Error(`Companion custom variable write failed (${response.status})`);
+}
+
+function markCompanionAction(action) {
+  companionState.lastAction = action;
+  companionState.lastActionAt = Date.now();
+}
+
+function handleCompanionButtonPress(id, button) {
+  const now = Date.now();
+  const cooldownMs = Math.max(0, Number(button.cooldownMs) || 0);
+  const lastPressAt = companionState.lastButtonPressAt.get(id) ?? 0;
+  if (cooldownMs && now - lastPressAt < cooldownMs) return;
+  companionState.lastButtonPressAt.set(id, now);
+
+  if (button.type === 'sequence' || button.type === 'momentarySequence') {
+    const target = triggerStreamDeckSequence(button.action);
+    if (!target) {
+      console.warn('[StreamDeck] Ignored unconfigured sequence action', { id, action: button.action });
+      return;
+    }
+    markCompanionAction({ id, type: button.type, action: button.action, phase: 'press' });
+    return;
+  }
+
+  if (button.type === 'dashboardClear') {
+    setClear();
+    markCompanionAction({ id, type: button.type, action: 'clear' });
+    return;
+  }
+
+  if (button.type === 'specialEffectArm') {
+    const groupState = state.specialEffects[button.group];
+    if (!groupState) {
+      console.warn('[StreamDeck] Ignored unknown special effect group', { id, group: button.group });
+      return;
+    }
+    setSpecialEffectArm(button.group, !groupState.armed);
+    markCompanionAction({ id, type: button.type, group: button.group, armed: state.specialEffects[button.group].armed });
+  }
+}
+
+function handleCompanionButtonRelease(id, button) {
+  if (button.type !== 'momentarySequence') return;
+
+  const target = releaseStreamDeckSequence(button.action);
+  if (!target) {
+    console.warn('[StreamDeck] Ignored unconfigured sequence release', { id, action: button.action });
+    return;
+  }
+
+  markCompanionAction({ id, type: button.type, action: button.action, phase: 'release' });
+}
+
+async function pollCompanionButtons() {
+  if (companionState.polling) return;
+  companionState.polling = true;
+
+  try {
+    const buttons = configuredCompanionButtons();
+    const readings = await Promise.all(buttons.map(async ([id, button]) => {
+      if (button.pressVariable || button.releaseVariable) {
+        const [pressValue, releaseValue] = await Promise.all([
+          readCompanionCustomVariable(button.pressVariable),
+          readCompanionCustomVariable(button.releaseVariable)
+        ]);
+        return { id, button, pressValue, releaseValue };
+      }
+
+      const active = await readCompanionButtonActive(button);
+      return { id, button, active };
+    }));
+
+    const confirmPolls = Math.max(1, Number(companionConfig().confirmPolls) || 1);
+
+    for (const { id, button, active, pressValue, releaseValue } of readings) {
+      if (button.pressVariable || button.releaseVariable) {
+        if (pressValue !== null) {
+          const key = `${id}:press`;
+          const previous = companionState.variableValues.get(key);
+          companionState.variableValues.set(key, pressValue);
+          if (companionState.primed && previous !== undefined && pressValue !== previous) handleCompanionButtonPress(id, button);
+        }
+
+        if (releaseValue !== null) {
+          const key = `${id}:release`;
+          const previous = companionState.variableValues.get(key);
+          companionState.variableValues.set(key, releaseValue);
+          if (companionState.primed && previous !== undefined && releaseValue !== previous) handleCompanionButtonRelease(id, button);
+        }
+
+        continue;
+      }
+
+      if (active === null) continue;
+
+      const activeCount = active ? (companionState.activeCounts.get(id) ?? 0) + 1 : 0;
+      const confirmedActive = activeCount >= confirmPolls;
+      const wasActive = companionState.previousActive.get(id) ?? false;
+
+      companionState.activeCounts.set(id, activeCount);
+      companionState.previousActive.set(id, confirmedActive);
+      if (companionState.primed && confirmedActive && !wasActive) handleCompanionButtonPress(id, button);
+      if (companionState.primed && !confirmedActive && wasActive) handleCompanionButtonRelease(id, button);
+    }
+
+    companionState.primed = true;
+
+    companionState.reachable = true;
+    companionState.lastError = null;
+    companionState.lastPollAt = Date.now();
+  } catch (error) {
+    companionState.reachable = false;
+    companionState.lastError = error?.message ?? String(error);
+  } finally {
+    companionState.polling = false;
+  }
+}
+
+function specialEffectFeedbackButtonEntries() {
+  return configuredCompanionButtons().filter(([, button]) =>
+    button.type === 'specialEffectArm' ||
+    button.type === 'specialEffectFireFeedback'
+  );
+}
+
+async function applyCompanionSpecialEffectFeedback(button, armed) {
+  const feedbackConfig = companionConfig();
+  const style = button.type === 'specialEffectFireFeedback'
+    ? (armed ? feedbackConfig.fireFeedback?.armed : feedbackConfig.fireFeedback?.disarmed)
+    : (armed ? feedbackConfig.armFeedback?.active : feedbackConfig.armFeedback?.inactive);
+  if (!style) return;
+
+  const label = button.feedbackLabel ?? button.label?.replace(/\s+arm$/i, '') ?? button.group;
+  const text = button.type === 'specialEffectFireFeedback'
+    ? String(label).toUpperCase()
+    : (armed ? 'ARMED' : 'ARM');
+
+  if (button.labelVariable) {
+    await setCompanionCustomVariable(button.labelVariable, text);
+  }
+
+  const params = new URLSearchParams({
+    ...style,
+    text
+  });
+
+  const response = await companionRequest(`/api/location/${button.page}/${button.row}/${button.column}/style?${params}`, {
+    method: 'POST'
+  });
+
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Companion style update failed (${response.status})`);
+  }
+}
+
+async function syncCompanionArmFeedback() {
+  const entries = specialEffectFeedbackButtonEntries();
+  if (entries.length === 0) return;
+
+  await Promise.all(entries.map(([, button]) => {
+    const armed = !!state.specialEffects[button.group]?.armed;
+    return applyCompanionSpecialEffectFeedback(button, armed);
+  }));
+}
+
+function scheduleCompanionArmFeedbackSync() {
+  if (!companionState.enabled) return;
+  if (companionState.feedbackTimer) clearTimeout(companionState.feedbackTimer);
+  companionState.feedbackTimer = setTimeout(() => {
+    companionState.feedbackTimer = null;
+    syncCompanionArmFeedback().catch(error => {
+      companionState.reachable = false;
+      companionState.lastError = error?.message ?? String(error);
+    });
+  }, 20);
+}
+
+function startCompanionBridge() {
+  const bridgeConfig = companionConfig();
+  const buttons = configuredCompanionButtons();
+  if (bridgeConfig.enabled === false || buttons.length === 0) return;
+
+  companionState.enabled = true;
+  const pollMs = Math.max(40, Number(bridgeConfig.pollMs) || 75);
+  companionState.pollTimer = setInterval(pollCompanionButtons, pollMs);
+  pollCompanionButtons();
+  scheduleCompanionArmFeedbackSync();
+  console.log(`[StreamDeck] Companion bridge watching ${buttons.length} button(s) at ${bridgeConfig.baseUrl ?? 'http://127.0.0.1:8000'}`);
 }
 
 // ---------- HTTP / WS server ----------
@@ -785,16 +1073,32 @@ app.post('/api/actions/fixture-colour', (req, res) => {
 
 app.post('/api/actions/stream-deck-sequence', (req, res) => {
   const action = typeof req.body?.action === 'string' ? req.body.action : '';
-  const target = config.executors.streamDeckSequences?.[action];
+  const target = triggerStreamDeckSequence(action);
 
-  if (!target || !Number.isFinite(target.page) || !Number.isFinite(target.exec) || !Number.isFinite(target.cue)) {
+  if (!target) {
     return res.status(400).json({ ok: false, error: 'Unknown Stream Deck sequence action' });
   }
 
-  ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 0`);
   return res.json({
     ok: true,
     action,
+    page: target.page,
+    exec: target.exec,
+    cue: target.cue,
+    ma2: state.ma2
+  });
+});
+
+app.post('/api/actions/stream-deck-sequence/:action', (req, res) => {
+  const target = triggerStreamDeckSequence(req.params.action);
+
+  if (!target) {
+    return res.status(400).json({ ok: false, error: 'Unknown Stream Deck sequence action' });
+  }
+
+  return res.json({
+    ok: true,
+    action: req.params.action,
     page: target.page,
     exec: target.exec,
     cue: target.cue,
@@ -817,6 +1121,48 @@ app.post('/api/actions/stream-deck-momentary', (req, res) => {
   ma2.send(command);
 
   return res.json({ ok: true, action, phase, command, ma2: state.ma2 });
+});
+
+app.post('/api/actions/special-effect-arm/:group/:mode?', (req, res) => {
+  const group = req.params.group;
+  const groupState = state.specialEffects[group];
+  if (!groupState) {
+    return res.status(400).json({ ok: false, error: 'Unknown special effect group' });
+  }
+
+  const mode = req.params.mode ?? 'toggle';
+  const armed = mode === 'toggle' ? !groupState.armed : ['on', 'arm', 'armed', 'true', '1'].includes(mode);
+  setSpecialEffectArm(group, armed);
+  return res.json({ ok: true, group, armed: state.specialEffects[group].armed });
+});
+
+app.get('/api/stream-deck/status', (_req, res) => {
+  res.json({
+    ok: true,
+    companion: {
+      enabled: companionState.enabled,
+      reachable: companionState.reachable,
+      baseUrl: companionConfig().baseUrl ?? 'http://127.0.0.1:8000',
+      pollMs: Math.max(40, Number(companionConfig().pollMs) || 75),
+      buttons: Object.fromEntries(configuredCompanionButtons().map(([id, button]) => [
+        id,
+        {
+          label: button.label,
+          page: button.page,
+          row: button.row,
+          column: button.column,
+          type: button.type,
+          action: button.action,
+          group: button.group
+        }
+      ])),
+      lastPollAt: companionState.lastPollAt,
+      lastActionAt: companionState.lastActionAt,
+      lastAction: companionState.lastAction,
+      lastError: companionState.lastError
+    },
+    specialEffects: state.specialEffects
+  });
 });
 
 // Serve built client if present
@@ -884,6 +1230,7 @@ server.listen(PORT, () => {
   console.log(`[Server] WebSocket at ws://localhost:${PORT}/ws`);
   ma2.connect();
   if (config.link?.enabled !== false || config.link) link.start();
+  startCompanionBridge();
 });
 
 // Periodic uptime broadcast (cheap, keeps Status tab live)
@@ -896,6 +1243,8 @@ setInterval(() => {
 // Graceful shutdown
 function shutdown() {
   console.log('\n[Server] Shutting down...');
+  if (companionState.pollTimer) clearInterval(companionState.pollTimer);
+  if (companionState.feedbackTimer) clearTimeout(companionState.feedbackTimer);
   if (ma2.reconnectTimer) {
     clearTimeout(ma2.reconnectTimer);
     ma2.reconnectTimer = null;

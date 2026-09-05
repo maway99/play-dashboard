@@ -637,7 +637,7 @@
   },
   "specialEffects": {
     "configured": false,
-    "showOnLightingPage": false,
+    "showOnLightingPage": true,
     "unconfiguredMessage": "Special effects cue mapping is not configured. Add exact grandMA2 cue assignments before enabling Confetti or CO2 fire actions.",
     "cueStack": {
       "page": null,
@@ -675,6 +675,199 @@
         ]
       }
     ]
+  },
+  "streamDeck": {
+    "companion": {
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:8000",
+      "pollMs": 50,
+      "confirmPolls": 2,
+      "buttons": {
+        "whiteStrobe": {
+          "label": "White strobe",
+          "page": 1,
+          "row": 0,
+          "column": 0,
+          "type": "momentarySequence",
+          "action": "whiteStrobe",
+          "pressVariable": "pgro_sd_white_strobe_down",
+          "releaseVariable": "pgro_sd_white_strobe_up",
+          "cooldownMs": 750
+        },
+        "strobeWhiteRandom": {
+          "label": "White random strobe",
+          "page": 1,
+          "row": 0,
+          "column": 1,
+          "type": "momentarySequence",
+          "action": "strobeWhiteRandom",
+          "pressVariable": "pgro_sd_strobe_white_random_down",
+          "releaseVariable": "pgro_sd_strobe_white_random_up",
+          "cooldownMs": 750
+        },
+        "strobeRed": {
+          "label": "Red strobe",
+          "page": 1,
+          "row": 0,
+          "column": 2,
+          "type": "momentarySequence",
+          "action": "strobeRed",
+          "pressVariable": "pgro_sd_strobe_red_down",
+          "releaseVariable": "pgro_sd_strobe_red_up",
+          "cooldownMs": 750
+        },
+        "strobeBlue": {
+          "label": "Blue strobe",
+          "page": 1,
+          "row": 0,
+          "column": 3,
+          "type": "momentarySequence",
+          "action": "strobeBlue",
+          "pressVariable": "pgro_sd_strobe_blue_down",
+          "releaseVariable": "pgro_sd_strobe_blue_up",
+          "cooldownMs": 750
+        },
+        "clear": {
+          "label": "Clear",
+          "page": 1,
+          "row": 0,
+          "column": 6,
+          "type": "dashboardClear",
+          "pressVariable": "pgro_sd_control_clear_press",
+          "cooldownMs": 500
+        },
+        "blackout": {
+          "label": "Blackout",
+          "page": 1,
+          "row": 0,
+          "column": 7,
+          "type": "momentarySequence",
+          "action": "blackout",
+          "pressVariable": "pgro_sd_blackout_down",
+          "releaseVariable": "pgro_sd_blackout_up",
+          "cooldownMs": 750
+        },
+        "whiteFlash": {
+          "label": "White flash",
+          "page": 1,
+          "row": 1,
+          "column": 0,
+          "type": "momentarySequence",
+          "action": "whiteFlash",
+          "pressVariable": "pgro_sd_white_flash_down",
+          "releaseVariable": "pgro_sd_white_flash_up",
+          "cooldownMs": 750
+        },
+        "flashWhiteChase": {
+          "label": "White chase flash",
+          "page": 1,
+          "row": 1,
+          "column": 1,
+          "type": "momentarySequence",
+          "action": "flashWhiteChase",
+          "pressVariable": "pgro_sd_flash_white_chase_down",
+          "releaseVariable": "pgro_sd_flash_white_chase_up",
+          "cooldownMs": 750
+        },
+        "flashRed": {
+          "label": "Red flash",
+          "page": 1,
+          "row": 1,
+          "column": 2,
+          "type": "momentarySequence",
+          "action": "flashRed",
+          "pressVariable": "pgro_sd_flash_red_down",
+          "releaseVariable": "pgro_sd_flash_red_up",
+          "cooldownMs": 750
+        },
+        "flashBlue": {
+          "label": "Blue flash",
+          "page": 1,
+          "row": 1,
+          "column": 3,
+          "type": "momentarySequence",
+          "action": "flashBlue",
+          "pressVariable": "pgro_sd_flash_blue_down",
+          "releaseVariable": "pgro_sd_flash_blue_up",
+          "cooldownMs": 750
+        },
+        "confettiArm": {
+          "label": "Confetti arm",
+          "page": 1,
+          "row": 1,
+          "column": 6,
+          "type": "specialEffectArm",
+          "group": "confetti",
+          "feedbackLabel": "Confetti",
+          "pressVariable": "pgro_sd_confetti_arm_press",
+          "labelVariable": "pgro_sd_confetti_arm_label",
+          "cooldownMs": 300
+        },
+        "co2Arm": {
+          "label": "CO2 arm",
+          "page": 1,
+          "row": 1,
+          "column": 7,
+          "type": "specialEffectArm",
+          "group": "co2",
+          "feedbackLabel": "CO2",
+          "pressVariable": "pgro_sd_co2_arm_press",
+          "labelVariable": "pgro_sd_co2_arm_label",
+          "cooldownMs": 300
+        },
+        "confettiFire1": {
+          "label": "Confetti fire 1",
+          "page": 1,
+          "row": 2,
+          "column": 6,
+          "type": "specialEffectFireFeedback",
+          "group": "confetti",
+          "feedbackLabel": "Fire 1"
+        },
+        "confettiFire2": {
+          "label": "Confetti fire 2",
+          "page": 1,
+          "row": 3,
+          "column": 6,
+          "type": "specialEffectFireFeedback",
+          "group": "confetti",
+          "feedbackLabel": "Fire 2"
+        },
+        "co2Fire": {
+          "label": "CO2 fire",
+          "page": 1,
+          "row": 2,
+          "column": 7,
+          "type": "specialEffectFireFeedback",
+          "group": "co2",
+          "feedbackLabel": "Fire"
+        }
+      },
+      "armFeedback": {
+        "active": {
+          "bgcolor": "#e05a00",
+          "color": "#ffffff",
+          "size": "9"
+        },
+        "inactive": {
+          "bgcolor": "#4a4a4a",
+          "color": "#b8b8b8",
+          "size": "9"
+        }
+      },
+      "fireFeedback": {
+        "armed": {
+          "bgcolor": "#4a1515",
+          "color": "#ffffff",
+          "size": "9"
+        },
+        "disarmed": {
+          "bgcolor": "#303030",
+          "color": "#8e8e8e",
+          "size": "9"
+        }
+      }
+    }
   },
   "cueBanks": {
     "slowCues": {
@@ -1077,10 +1270,52 @@
         "exec": 101,
         "cue": 1
       },
+      "strobeWhiteRandom": {
+        "label": "White random strobe",
+        "page": 1,
+        "exec": 103,
+        "cue": 1
+      },
+      "strobeRed": {
+        "label": "Red strobe",
+        "page": 1,
+        "exec": 104,
+        "cue": 1
+      },
+      "strobeBlue": {
+        "label": "Blue strobe",
+        "page": 1,
+        "exec": 105,
+        "cue": 1
+      },
       "whiteFlash": {
         "label": "White flash",
         "page": 1,
         "exec": 102,
+        "cue": 1
+      },
+      "flashWhiteChase": {
+        "label": "White chase flash",
+        "page": 1,
+        "exec": 106,
+        "cue": 1
+      },
+      "flashRed": {
+        "label": "Red flash",
+        "page": 1,
+        "exec": 107,
+        "cue": 1
+      },
+      "flashBlue": {
+        "label": "Blue flash",
+        "page": 1,
+        "exec": 108,
+        "cue": 1
+      },
+      "blackout": {
+        "label": "Blackout",
+        "page": 1,
+        "exec": 109,
         "cue": 1
       }
     },

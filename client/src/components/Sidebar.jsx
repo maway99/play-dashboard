@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 
 const TABS = [
   { id: 'lighting', label: 'Lighting' },
-  { id: 'control', label: 'Maintenance' },
 ];
 
 export default function Sidebar({ active, onChange, state }) {
