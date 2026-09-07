@@ -40,17 +40,22 @@ if not exist "%CHROME%" (
 echo     Chrome: %CHROME%
 
 echo.
-echo [1/5] npm install ^(server^)
+echo [1/8] Verify lighting network
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\verify-lighting-network.ps1"
+if errorlevel 1 goto :fail
+
+echo.
+echo [2/8] npm install ^(server^)
 call npm install --no-audit --no-fund
 if errorlevel 1 goto :fail
 
 echo.
-echo [2/5] npm install ^(client^)
+echo [3/8] npm install ^(client^)
 call npm --prefix client install --no-audit --no-fund
 if errorlevel 1 goto :fail
 
 echo.
-echo [3/5] Build client
+echo [4/8] Build client
 call npm --prefix client run build
 if errorlevel 1 goto :fail
 if not exist "%ROOT%\client\dist\index.html" (
@@ -61,19 +66,36 @@ if not exist "%ROOT%\client\dist\index.html" (
 where pm2 >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo [4/5] Installing pm2 globally
+    echo [5/8] Installing pm2 globally
     call npm install -g pm2
     if errorlevel 1 goto :fail
     set "PATH=%APPDATA%\npm;%PATH%"
 ) else (
     echo.
-    echo [4/5] pm2 already installed
+    echo [5/8] pm2 already installed
 )
 
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 
 echo.
-echo [5/5] Register Task Scheduler ^(runs start-panel.bat at logon^)
+echo [6/8] Install Ableton Link bridge
+if not exist "%ROOT%\tools\Carabiner.exe" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\get-carabiner.ps1"
+    if errorlevel 1 goto :fail
+) else (
+    echo     Carabiner.exe already installed
+)
+netsh advfirewall firewall delete rule name="Play Gloucester Ableton Link" >nul 2>&1
+netsh advfirewall firewall add rule name="Play Gloucester Ableton Link" dir=in action=allow program="%ROOT%\tools\Carabiner.exe" protocol=UDP localport=20808 profile=any enable=yes >nul
+if errorlevel 1 goto :fail
+
+echo.
+echo [7/8] Verify Bitfocus Companion
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\start-companion.ps1"
+if errorlevel 1 goto :fail
+
+echo.
+echo [8/8] Register Task Scheduler ^(runs start-panel.bat interactively at logon^)
 
 set "RUNAS=%USERNAME%"
 if /i not "%USERDOMAIN%"=="%COMPUTERNAME%" set "RUNAS=%USERDOMAIN%\%USERNAME%"
@@ -88,7 +110,7 @@ schtasks /Delete /TN "Play Gloucester Room One PM2 Resurrect" /F >nul 2>&1
 schtasks /Delete /TN "Play Gloucester Room One Edge Kiosk"     /F >nul 2>&1
 schtasks /Delete /TN "Play Gloucester Room One Panel"          /F >nul 2>&1
 
-schtasks /Create /TN "Play Gloucester Room One Panel" /TR "%ROOT%\start-panel.bat" /SC ONLOGON /RU %RUNAS% /RL LIMITED /F
+schtasks /Create /TN "Play Gloucester Room One Panel" /TR "%ROOT%\start-panel.bat" /SC ONLOGON /RU "%RUNAS%" /RL LIMITED /IT /F
 if errorlevel 1 (
     echo ERROR: Could not register Task Scheduler task.
     goto :fail
@@ -109,14 +131,24 @@ powercfg /change hibernate-timeout-ac 0    >nul 2>&1
 reg add "HKCU\Control Panel\Desktop" /v ScreenSaveActive /t REG_SZ /d 0 /f >nul 2>&1
 reg add "HKCU\Control Panel\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 0 /f >nul 2>&1
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v ToastEnabled /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\TabletTip\1.7" /v EnableDesktopModeAutoInvoke /t REG_DWORD /d 0 /f >nul 2>&1
 
 echo.
-echo === Setup complete ===
+echo === Installation complete - starting live services ===
 echo.
 echo Starting panel now (grandMA2 onPC + server + Chrome kiosk)...
 echo After any reboot, start-panel.bat runs automatically at logon.
 echo.
 call "%ROOT%\start-panel.bat"
+if errorlevel 1 goto :fail
+
+echo.
+echo Verifying the live installation ^(up to 2 minutes^)...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\verify-install.ps1"
+if errorlevel 1 goto :fail
+
+echo.
+echo All production checks passed.
 pause
 exit /b 0
 

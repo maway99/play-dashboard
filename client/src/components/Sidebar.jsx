@@ -4,7 +4,7 @@ const TABS = [
   { id: 'lighting', label: 'Lighting' },
 ];
 
-export default function Sidebar({ active, onChange, state }) {
+export default function Sidebar({ active, onChange, state, send }) {
   const ma2Connected = state?.ma2 === 'connected';
   const link = state?.link;
   const linkTone = !link || !link.enabled ? 'idle' : link.carabiner !== 'connected' ? 'idle' : link.peers > 0 ? 'ok' : 'idle';
@@ -42,6 +42,8 @@ export default function Sidebar({ active, onChange, state }) {
         })}
       </nav>
 
+      <LampControls maintenance={state?.config?.fixtureMaintenance} send={send} />
+
       <div className="mt-6 space-y-2 text-[13px]">
         <StatusRow label="MA2" tone={ma2Connected ? 'ok' : 'bad'} text={ma2Connected ? 'Online' : 'Offline'} pulse={!ma2Connected} active={active === 'status'} onClick={() => onChange(active === 'status' ? 'lighting' : 'status')} />
         {link && (
@@ -51,6 +53,70 @@ export default function Sidebar({ active, onChange, state }) {
 
       <Clock />
     </aside>
+  );
+}
+
+function LampControls({ maintenance, send }) {
+  const [pendingOff, setPendingOff] = useState(false);
+
+  useEffect(() => {
+    if (!pendingOff) return undefined;
+    const timeout = setTimeout(() => setPendingOff(false), 2500);
+    return () => clearTimeout(timeout);
+  }, [pendingOff]);
+
+  const configured = !!maintenance?.configured
+    && Number.isFinite(maintenance.cueStack?.page)
+    && Number.isFinite(maintenance.cueStack?.exec);
+  const lampOnMapped = configured && Number.isFinite(maintenance.globalActions?.lampOn?.cue);
+  const lampOffMapped = configured && Number.isFinite(maintenance.globalActions?.lampOff?.cue);
+
+  const lampOn = () => {
+    if (lampOnMapped) send({ type: 'maintenance', scope: 'global', action: 'lampOn' });
+  };
+  const lampOff = () => {
+    if (!lampOffMapped) return;
+    if (!pendingOff) {
+      setPendingOff(true);
+      return;
+    }
+    setPendingOff(false);
+    send({ type: 'maintenance', scope: 'global', action: 'lampOff' });
+  };
+
+  return (
+    <section className="mt-5 border-t border-border/60 pt-4" aria-label="Lamp power">
+      <div className="section-header mb-2">Lamp power</div>
+      <div className="grid gap-2">
+        <button
+          type="button"
+          onClick={lampOn}
+          disabled={!lampOnMapped}
+          className={`btn h-[var(--ctl-h)] px-2 text-[12px] ${
+            lampOnMapped ? 'btn-default' : 'bg-btn text-white/35 border border-dashed border-border/70'
+          }`}
+          style={{ minHeight: 0 }}
+        >
+          Lamps On
+        </button>
+        <button
+          type="button"
+          onClick={lampOff}
+          disabled={!lampOffMapped}
+          aria-label={pendingOff ? 'Confirm all lamps off' : 'All lamps off'}
+          className={`btn h-[var(--ctl-h)] px-2 text-[12px] ${
+            !lampOffMapped
+              ? 'bg-btn text-white/35 border border-dashed border-border/70'
+              : pendingOff
+              ? 'bg-bad text-white border border-bad'
+              : 'bg-transparent text-bad border border-bad/50 hover:border-bad'
+          }`}
+          style={{ minHeight: 0 }}
+        >
+          {pendingOff ? 'Tap Again' : 'Lamps Off'}
+        </button>
+      </div>
+    </section>
   );
 }
 

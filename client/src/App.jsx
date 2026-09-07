@@ -23,7 +23,7 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen flex bg-bg overflow-hidden">
-      <Sidebar active={visibleTab} onChange={setTab} state={state} />
+      <Sidebar active={visibleTab} onChange={setTab} state={state} send={send} />
       <main className="flex-1 h-full flex flex-col min-h-0 overflow-hidden">
         {panelReconnecting && (
           <OfflineBanner visible title="PANEL SERVER OFFLINE" subtitle="Reconnecting" />

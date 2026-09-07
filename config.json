@@ -286,20 +286,21 @@
     ]
   },
   "fixtureMaintenance": {
-    "configured": false,
+    "configured": true,
     "unconfiguredMessage": "Fixture maintenance cue mapping is not configured. Add exact grandMA2 cue assignments for global lamp/reset actions and each beam fixture before enabling.",
     "cueStack": {
-      "page": null,
-      "exec": null
+      "page": 4,
+      "exec": 6,
+      "sequence": 12
     },
     "globalActions": {
       "lampOn": {
         "label": "All lamps on",
-        "cue": null
+        "cue": 1
       },
       "lampOff": {
         "label": "All lamps off",
-        "cue": null
+        "cue": 2
       },
       "reset": {
         "label": "Reset all fixtures",
@@ -679,7 +680,7 @@
   "streamDeck": {
     "companion": {
       "enabled": true,
-      "baseUrl": "http://127.0.0.1:8000",
+      "baseUrl": "http://2.0.0.10:8000",
       "pollMs": 50,
       "confirmPolls": 2,
       "buttons": {
@@ -970,89 +971,28 @@
       "cues": [
         {
           "id": "main-01",
-          "label": "Basic Circular Fade",
+          "label": "Tight Orbit",
           "cue": 1
         },
         {
           "id": "main-02",
-          "label": "Tilt Snap BPM",
+          "label": "Alternating Orbits",
           "cue": 2
         },
         {
           "id": "main-03",
-          "label": "Circle Alt BPM",
+          "label": "Alternating Pans",
           "cue": 3
         },
         {
           "id": "main-04",
-          "label": "Beams / Strobes Alt BPM",
+          "label": "3-Second Sweep",
           "cue": 4
         },
         {
           "id": "main-05",
-          "label": "Pulse ride",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-06",
-          "label": "Floor sweep",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-07",
-          "label": "Cross rhythm",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-08",
-          "label": "Centre punch",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-09",
-          "label": "Side chase",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-10",
-          "label": "Tunnel roll",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-11",
-          "label": "Accent hits",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-12",
-          "label": "Energy wave",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-13",
-          "label": "Circle chase",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-14",
-          "label": "Split sweep",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "main-15",
-          "label": "Full room",
-          "cue": null,
-          "placeholder": true
+          "label": "Full-Room Sweep",
+          "cue": 5
         }
       ]
     },
@@ -1060,20 +1000,30 @@
       "label": "Strobes",
       "cues": [
         {
-          "id": "strobe-cue-05",
-          "label": "Alt Strobe Circle",
-          "cue": 5
+          "id": "strobe-cue-06",
+          "label": "Strobe Tip",
+          "cue": 6
         },
         {
-          "id": "strobe-cue-06",
-          "label": "Outward Strobe Circle",
-          "cue": 6
+          "id": "strobe-cue-08",
+          "label": "Strobe Spin",
+          "cue": 8
         }
       ]
     },
     "buildups": {
       "label": "Buildups",
       "cues": [
+        {
+          "id": "buildup-cue-09",
+          "label": "Med Rnd Chase",
+          "cue": 9
+        },
+        {
+          "id": "buildup-cue-10",
+          "label": "Fast Rnd Chase",
+          "cue": 10
+        },
         {
           "id": "buildup-01",
           "label": "Build rise",
@@ -1324,8 +1274,9 @@
       "exec": 6
     },
     "endOfNight": {
-      "page": 1,
-      "exec": 3
+      "page": 4,
+      "exec": 1,
+      "cue": 7
     },
     "disables": {
       "beams": {
@@ -1361,6 +1312,10 @@
     }
   },
   "defaults": {
-    "fadeTime": 0.5
+    "fadeTime": 0.5,
+    "fixtureColours": {
+      "beams": "blue",
+      "strobes": "blue"
+    }
   }
 }

@@ -8,11 +8,12 @@ This README is for whoever maintains the venue PC. Architecture and design ratio
 
 ## What runs where
 
-| Process          | Where               | How it starts                              |
-|------------------|---------------------|--------------------------------------------|
-| grandMA2 onPC    | MA2 PC              | Existing Task Scheduler entry (not ours)   |
-| Node server      | MA2 PC              | PM2 — auto-restart on crash, resurrect at logon |
-| Chrome kiosk     | MA2 PC              | Task Scheduler at logon, waits for server  |
+| Process            | Where  | How it starts                                    |
+|--------------------|--------|--------------------------------------------------|
+| grandMA2 onPC      | MA2 PC | Started by `start-panel.bat` if not already open |
+| Bitfocus Companion | MA2 PC | Started and verified by `start-panel.bat`        |
+| Node server        | MA2 PC | PM2 — auto-restart on crash                      |
+| Chrome kiosk       | MA2 PC | Interactive Task Scheduler entry at logon        |
 
 Panel talks to its own backend on `localhost:3000` via WebSocket. Backend talks to grandMA2 on `127.0.0.1:30000` via telnet.
 
@@ -22,15 +23,18 @@ Panel talks to its own backend on `localhost:3000` via WebSocket. Backend talks 
 
 **Right-click `setup.bat` → Run as administrator** (run as the **same Windows user** that auto-logs in at the venue).
 
-`setup.bat` is the full installer (plain batch). It installs dependencies, builds the client, starts PM2, registers auto-start (Task Scheduler **and** Startup folder), opens Chrome kiosk once at the end, then you reboot to confirm logon auto-start.
+`setup.bat` is the full installer (plain batch). It verifies the `2.0.0.10 / 255.0.0.0` lighting adapter, installs dependencies and the Windows Ableton Link bridge, verifies Companion, builds the client, starts PM2, registers an interactive auto-start task, opens Chrome kiosk once at the end, then you reboot to confirm logon auto-start.
 
 If Chrome does not open after reboot: run `start-panel.bat` manually and check the `logs\` folder.
+
+For an on-demand end-to-end check, run `powershell -ExecutionPolicy Bypass -File scripts\verify-install.ps1`. It verifies the lighting NIC, scheduled task, dashboard, local MA2 and Companion routing, Carabiner, and the dedicated Chrome kiosk process.
 
 Prerequisites (install manually before running setup):
 
 - Node.js LTS (20.x or 22.x)
 - Git (only required if you want to use `update.bat` for one-click updates)
 - Google Chrome
+- Bitfocus Companion with the Stream Deck profile configured
 - grandMA2 onPC with **Telnet Remote → Login Enabled** in Global Settings
 
 ---
@@ -101,23 +105,25 @@ All venue-specific values live here. **No hardcoded values in code.**
 | `ma2.ip`         | `127.0.0.1` if panel is on the same PC as onPC (recommended)                |
 | `ma2.password`   | Whatever you set in MA2's Telnet Remote settings                            |
 | `cueStack`       | Page/exec of the single cue stack the panel drives                          |
-| `colourControls.*` | Legacy/API fixture-colour cue mappings; the Lighting page no longer renders the colour picker |
+| `colourControls.*` | Beam/Strobe colour-picker cue mappings and bottom palette controls |
 | `fixtureMaintenance` | Maintenance-tab rig layout plus lamp/reset/disable cue mappings       |
 | `specialEffects` | Lighting-tab Confetti and CO2 arm/fire controls plus cue mappings      |
 | `streamDeck.companion` | Bitfocus Companion bridge host plus Stream Deck button locations |
 | `cueBanks.*`     | Lighting cue-library buttons; `cue: null` means unassigned and will not dispatch |
 | `executors.haze` | Fader executor for haze level                                               |
-| `executors.endOfNight` | Toggle exec for the End-of-Night sequence                             |
+| `executors.endOfNight` | Page, executor, and cue for the dedicated End-of-Night control        |
 | `executors.disables` | Inhibitive submaster execs per fixture group                            |
 | `defaults.fadeTime`  | Fade time on first launch (currently 0.5s)                              |
 
 `config.json` is read once at server start. Restart PM2 after editing.
 
+The checked-in `config.json` uses `2.0.0.10` for development from the Mac. The Windows PM2 definition overrides MA2 to `127.0.0.1:30000` and Companion to `http://127.0.0.1:8000`, because both applications run on the lighting PC. This avoids sending same-machine traffic through the Art-Net/MA-Net adapter.
+
 ### Cue library
 
-The Lighting tab starts with named placeholder cue entries for Slow Cues, Strobes, Main Cues, Laser Cues, and Buildups. A placeholder with `cue: null` is visible for layout and operator planning but will not dispatch until an exact MA2 cue number is assigned.
+The Lighting tab keeps separate Slow, Strobe, Main, Buildup, and Laser cue sections while hiding unassigned cue buttons. Beam and Strobe colour controls plus palette presets sit in the bottom band.
 
-Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. Placeholder buttons are visible in the panel but do not dispatch MA2 commands until a finite cue number is assigned.
+Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. The Beam colour row uses executor 1.1 and the Strobe colour row uses executor 1.2. Main movement cues remain on executor 4.1 and reapply the currently selected Beam and Strobe colours after firing.
 
 ### Special effects
 
@@ -159,7 +165,7 @@ The current mapping watches:
 
 Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the same local arm state shown on the Lighting dashboard, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. Fire buttons grey out when their effect group is disarmed and switch to the armed warning style when armed.
 
-`pollMs`, `confirmPolls`, and per-button `cooldownMs` control how quickly a physical press is accepted while filtering short Companion state blips.
+`pollMs` and `confirmPolls` control bridge polling and active-state filtering. Momentary sequence controls execute every distinct Companion press event without a cooldown, allowing rapid repeated taps. Per-button `cooldownMs` remains available for latching controls such as Clear and effect-arm buttons.
 
 ### Fixture colour wheel
 

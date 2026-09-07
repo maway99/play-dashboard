@@ -1,6 +1,6 @@
 @echo off
 REM Play Gloucester Room One Panel — start everything.
-REM Launches grandMA2 onPC, starts the panel server, then opens Chrome kiosk.
+REM Launches grandMA2 onPC and Companion, starts the panel server, then opens Chrome kiosk.
 REM Called by Task Scheduler at logon, or run manually to restart everything.
 
 setlocal EnableExtensions EnableDelayedExpansion
@@ -29,34 +29,48 @@ if not defined GMA2 (
     )
 )
 
-echo [1/3] grandMA2 onPC...
+echo [1/4] grandMA2 onPC...
 if not defined GMA2 (
     echo       Not found under Program Files - skipping
-    echo [1/3] gma2onpc not found - skipping>>"%LOG%"
-    goto :start_server
+    echo [1/4] gma2onpc not found - skipping>>"%LOG%"
+    goto :start_companion
 )
 
 tasklist /FI "IMAGENAME eq gma2onpc.exe" 2>nul | find /I "gma2onpc.exe" >nul 2>&1
 if not errorlevel 1 (
     echo       Already running
-    echo [1/3] gma2onpc already running>>"%LOG%"
-    goto :start_server
+    echo [1/4] gma2onpc already running>>"%LOG%"
+    goto :start_companion
 )
 
 echo       Launching...
-echo [1/3] Launching gma2onpc>>"%LOG%"
+echo [1/4] Launching gma2onpc>>"%LOG%"
 start "" "%GMA2%"
 
 REM Dismiss the fader wing popup in a parallel minimised window.
 REM It waits ~15s for the popup then sends Enter — runs alongside server start.
 start "Play Gloucester Room One - Dismiss Popup" /MIN powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\dismiss-gma2-popup.ps1"
 
+:start_companion
+REM -----------------------------------------------------------------------
+REM 2. Launch Bitfocus Companion (if it is not already serving port 8000)
+REM -----------------------------------------------------------------------
+echo [2/4] Bitfocus Companion...
+echo [2/4] Starting/checking Companion>>"%LOG%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\start-companion.ps1" >>"%LOG%" 2>&1
+if errorlevel 1 (
+    echo       WARNING: Companion did not start - Stream Deck controls will reconnect when it is opened
+    echo [2/4] WARNING: Companion unavailable>>"%LOG%"
+) else (
+    echo       Ready on localhost:8000
+)
+
 :start_server
 REM -----------------------------------------------------------------------
-REM 2. Start panel server via PM2 (with direct-node fallback)
+REM 3. Start panel server via PM2 (with direct-node fallback)
 REM -----------------------------------------------------------------------
-echo [2/3] Starting panel server...
-echo [2/3] Starting panel server>>"%LOG%"
+echo [3/4] Starting panel server...
+echo [3/4] Starting panel server>>"%LOG%"
 
 set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
 call "%ROOT%\scripts\start-panel-server.bat" logon >>"%LOG%" 2>&1
@@ -67,16 +81,16 @@ if errorlevel 1 (
 )
 
 REM -----------------------------------------------------------------------
-REM 3. Launch Chrome in kiosk mode
+REM 4. Launch Chrome in kiosk mode
 REM -----------------------------------------------------------------------
-echo [3/3] Launching Chrome kiosk...
-echo [3/3] Launching Chrome kiosk>>"%LOG%"
+echo [4/4] Launching Chrome kiosk...
+echo [4/4] Launching Chrome kiosk>>"%LOG%"
 
 set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
 if not exist "%CHROME%" (
     echo       ERROR: Google Chrome not found. Install it first.
-    echo [3/3] ERROR: Chrome not found>>"%LOG%"
+    echo [4/4] ERROR: Chrome not found>>"%LOG%"
     pause
     exit /b 1
 )
@@ -100,6 +114,6 @@ start "" "%CHROME%" ^
   --overscroll-history-navigation=0 ^
   --user-data-dir="%LOCALAPPDATA%\Play Gloucester Room One Panel Chrome"
 
-echo [3/3] Kiosk started>>"%LOG%"
+echo [4/4] Kiosk started>>"%LOG%"
 echo Done.
 exit /b 0

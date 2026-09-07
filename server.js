@@ -10,6 +10,17 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 
+// Venue production runs the panel, MA2 and Companion on one Windows PC, while
+// development commonly runs the panel on a Mac against that PC over Ethernet.
+// PM2 supplies localhost overrides in production; config.json remains usable for
+// remote development without maintaining two copies of the cue configuration.
+const ma2HostOverride = process.env.MA2_HOST?.trim();
+const companionUrlOverride = process.env.COMPANION_BASE_URL?.trim();
+if (ma2HostOverride) config.ma2.ip = ma2HostOverride;
+if (companionUrlOverride && config.streamDeck?.companion) {
+  config.streamDeck.companion.baseUrl = companionUrlOverride.replace(/\/$/, '');
+}
+
 const PORT = process.env.PORT || config.server?.port || 3000;
 const startedAt = Date.now();
 
@@ -185,7 +196,8 @@ class Ma2Telnet {
         startMa2Polling(); // Start periodic polling for active cue
         setTimeout(() => link.pushTempo(true), 700); // desk just came up: give it the current tempo
         broadcastState();
-        while (this.queue.length) sock.write(this.queue.shift());
+        // Performance commands issued while offline are deliberately not
+        // replayed after reconnect; stale lighting actions are unsafe.
       } else if (lower.includes('login failed') || lower.includes('wrong password') ||
                  lower.includes('access denied') || lower.includes('invalid user')) {
         console.warn('[MA2] Login rejected:', this.buffer.slice(-200));
@@ -245,8 +257,7 @@ class Ma2Telnet {
       this.socket.write(line);
       console.log('[MA2 →]', command);
     } else {
-      console.log('[MA2 queued]', command);
-      this.queue.push(line);
+      console.log('[MA2 skipped offline]', command);
     }
   }
 }
@@ -492,8 +503,9 @@ function parseMa2InfoResponse(response) {
     
     if (cueNum > 0 && cueNum !== state.activeCue) {
       state.activeCue = cueNum;
-      // Track End of Night state based on cue 141
-      const newEotnState = (cueNum === 141);
+      // Track End of Night state using its configured cue assignment.
+      const endOfNightCue = config.executors.endOfNight?.cue;
+      const newEotnState = Number.isFinite(endOfNightCue) && cueNum === endOfNightCue;
       if (newEotnState !== state.endOfNightActive) {
         state.endOfNightActive = newEotnState;
         console.log('[MA2 Sync] End of Night state updated:', newEotnState);
@@ -586,6 +598,16 @@ function setFixtureColour(fixtureId, colourId) {
   if (sendFixtureColour(fixtureId, colourId)) broadcastState();
 }
 
+function setFixtureColours(colours) {
+  if (!colours || typeof colours !== 'object' || Array.isArray(colours)) return;
+  let changed = false;
+  for (const [fixtureId, colourId] of Object.entries(colours)) {
+    if (typeof fixtureId !== 'string' || typeof colourId !== 'string') continue;
+    changed = sendFixtureColour(fixtureId, colourId) || changed;
+  }
+  if (changed) broadcastState();
+}
+
 function setAllFixtureColours(colourId) {
   let changed = false;
   for (const fixture of config.colourControls.fixtures) {
@@ -594,17 +616,21 @@ function setAllFixtureColours(colourId) {
   if (changed) broadcastState();
 }
 
-function setFixturePalette(paletteId) {
+function setFixturePalette(paletteId, requestedFixtures) {
   const palette = config.colourControls.palettes.find(p => p.id === paletteId);
   if (!palette) return;
+  const fixtureFilter = Array.isArray(requestedFixtures)
+    ? new Set(requestedFixtures.filter((fixtureId) => typeof fixtureId === 'string'))
+    : null;
   let changed = false;
   for (const [fixtureId, colourId] of Object.entries(palette.colours)) {
+    if (fixtureFilter && !fixtureFilter.has(fixtureId)) continue;
     changed = sendFixtureColour(fixtureId, colourId) || changed;
   }
   if (changed) broadcastState();
 }
 
-function selectCue(cueNumber) {
+function selectCue(cueNumber, colours) {
   const assignedCue = findAssignedCue(cueNumber);
   if (!assignedCue) {
     console.warn('[Cue] Ignored unassigned or unknown cue request', { cueNumber });
@@ -622,6 +648,16 @@ function selectCue(cueNumber) {
   const fade = cueUsesZeroFade(cueNumber) ? 0 : state.fadeTime;
   // Single line: 'Fade' as a suffix on Goto. MA2 errors on standalone 'Fade N'.
   ma2.send(`Goto Cue ${cueNumber} Exec ${page}.${exec} Fade ${fade}`);
+
+  // Main movement cues can contain their original programming colour. Reapply
+  // the requested fixture-colour layer after the movement cue so every Beam /
+  // Strobe combination remains available without duplicating cues in MA2.
+  if (colours && typeof colours === 'object' && !Array.isArray(colours)) {
+    for (const [fixtureId, colourId] of Object.entries(colours)) {
+      if (typeof fixtureId !== 'string' || typeof colourId !== 'string') continue;
+      sendFixtureColour(fixtureId, colourId);
+    }
+  }
   broadcastState();
 }
 
@@ -664,23 +700,20 @@ function releaseStreamDeckSequence(action) {
 }
 
 function setEndOfNight(active) {
-  state.endOfNightActive = !!active;
-  const { page, exec } = config.executors.endOfNight;
-  ma2.send(`${active ? 'Go' : 'Off'} Exec ${page}.${exec}`);
+  const target = config.executors.endOfNight;
+  if (!Number.isFinite(target?.page) || !Number.isFinite(target?.exec) || !Number.isFinite(target?.cue)) {
+    console.warn('[End Of Night] Ignored because its page, exec, or cue mapping is incomplete');
+    return;
+  }
 
   if (active) {
-    // EOTN takes over: release the main cue stack so reload state is fresh for next night.
-    const cs = config.cueStack;
-    ma2.send(`Off Exec ${cs.page}.${cs.exec}`);
-    // Activate cue 141 (End of Night cue) with 1s fade
-    ma2.send(`Goto Cue 141 Exec ${cs.page}.${cs.exec} Fade 1`);
-    state.activeCue = 141;
+    ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 1`);
+    state.activeCue = target.cue;
+    state.endOfNightActive = true;
   } else {
-    // When manually deactivating EOTN, clear cues
-    const cs = config.cueStack;
-    ma2.send(`Off Fader ${cs.page}`);
-    ma2.send(`Off Exec ${cs.page}.${cs.exec}`);
+    ma2.send(`Off Exec ${target.page}.${target.exec}`);
     state.activeCue = null;
+    state.endOfNightActive = false;
   }
 
   broadcastState();
@@ -865,7 +898,12 @@ function markCompanionAction(action) {
 
 function handleCompanionButtonPress(id, button) {
   const now = Date.now();
-  const cooldownMs = Math.max(0, Number(button.cooldownMs) || 0);
+  // Momentary performance controls must respond to every distinct Companion
+  // press event, including fast repeated taps. Cooldowns remain available for
+  // latching controls such as Clear and effect-arm buttons.
+  const cooldownMs = button.type === 'momentarySequence'
+    ? 0
+    : Math.max(0, Number(button.cooldownMs) || 0);
   const lastPressAt = companionState.lastButtonPressAt.get(id) ?? 0;
   if (cooldownMs && now - lastPressAt < cooldownMs) return;
   companionState.lastButtonPressAt.set(id, now);
@@ -1200,12 +1238,13 @@ wss.on('connection', (ws) => {
     switch (msg.type) {
       case 'haze':            return setHaze(msg.value);
       case 'fadeTime':        return setFadeTime(msg.value);
-      case 'cue':             return selectCue(msg.cueNumber);
+      case 'cue':             return selectCue(msg.cueNumber, msg.colours);
       case 'endOfNight':      return setEndOfNight(msg.active);
       case 'clear':           return setClear();
       case 'fixtureColour':   return setFixtureColour(msg.fixture, msg.colour);
+      case 'fixtureColours':  return setFixtureColours(msg.colours);
       case 'allFixtureColours': return setAllFixtureColours(msg.colour);
-      case 'fixturePalette':  return setFixturePalette(msg.palette);
+      case 'fixturePalette':  return setFixturePalette(msg.palette, msg.fixtures);
       case 'disable':         return setDisable(msg.target, msg.active);
       case 'maintenance':     return dispatchMaintenanceCommand(msg.scope, msg.action, msg.fixtureId);
       case 'specialEffectArm': return setSpecialEffectArm(msg.group, msg.armed);
@@ -1251,7 +1290,12 @@ function shutdown() {
   }
   if (ma2.socket) ma2.socket.destroy();
   link.stop();
+  if (wss) {
+    for (const client of wss.clients) client.terminate();
+    wss.close();
+  }
   server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 1000).unref();
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import SpecialEffectsControls from './SpecialEffects.jsx';
 
 const AUTO_INTERVAL_MS = 15000;
 const VISIBLE_CUES_PER_BANK = 15;
 const AUTO_CUE_BANKS = ['slowCues', 'mainCues', 'strobeCues'];
-const CUE_GROUPS = [
-  ['slowCues', 'strobeCues', 'mainCues'],
-  ['laserCues'],
-  ['buildups']
-];
-const EFFECTS_RAIL_WIDTH = 420;
+const PRIMARY_CUE_BANKS = [['slowCues', 'strobeCues'], 'mainCues', 'buildups', 'laserCues'];
+const MAIN_COLOUR_FIXTURE_IDS = ['beams', 'strobes'];
 
 // Display labels are Title Case regardless of how they're typed in config.
 const titleCase = (text) => String(text ?? '').replace(/\b\p{L}/gu, (ch) => ch.toUpperCase());
@@ -29,7 +24,23 @@ export default function Lighting({ state, send }) {
   const [autoNextCue, setAutoNextCue] = useState(null);
   const [autoNextAt, setAutoNextAt] = useState(null);
   const autoTimerRef = useRef(null);
-  const autoRef = useRef({ nextCue: null, cues: [] });
+  const autoRef = useRef({ nextCue: null, cues: [], bankKey: null });
+  const mainColoursRef = useRef({});
+
+  mainColoursRef.current = Object.fromEntries(MAIN_COLOUR_FIXTURE_IDS.map((fixtureId) => [
+    fixtureId,
+    state.fixtureColours?.[fixtureId]
+      ?? state.config.defaults?.fixtureColours?.[fixtureId]
+      ?? 'blue'
+  ]));
+
+  const sendCue = useCallback((cueNumber, bankKey, colours) => {
+    send({
+      type: 'cue',
+      cueNumber,
+      ...(bankKey === 'mainCues' ? { colours: colours ?? mainColoursRef.current } : {})
+    });
+  }, [send]);
 
   const stopAuto = useCallback(() => {
     clearTimeout(autoTimerRef.current);
@@ -39,12 +50,12 @@ export default function Lighting({ state, send }) {
   }, []);
 
   const tick = useCallback(() => {
-    const { nextCue, cues } = autoRef.current;
+    const { nextCue, cues, bankKey } = autoRef.current;
     if (!Number.isFinite(nextCue)) {
       stopAuto();
       return;
     }
-    send({ type: 'cue', cueNumber: nextCue });
+    sendCue(nextCue, bankKey);
     const newNext = pickRandom(cues, nextCue);
     if (!newNext) {
       stopAuto();
@@ -54,7 +65,7 @@ export default function Lighting({ state, send }) {
     setAutoNextCue(newNext.cue);
     setAutoNextAt(Date.now() + AUTO_INTERVAL_MS);
     autoTimerRef.current = setTimeout(tick, AUTO_INTERVAL_MS);
-  }, [send, stopAuto]);
+  }, [sendCue, stopAuto]);
 
   const toggleAuto = useCallback((bankKey, cues) => {
     if (autoBank === bankKey) { stopAuto(); return; }
@@ -62,20 +73,20 @@ export default function Lighting({ state, send }) {
     if (assignedCues.length === 0) return;
     clearTimeout(autoTimerRef.current);
     const first = pickRandom(assignedCues, null);
-    send({ type: 'cue', cueNumber: first.cue });
+    sendCue(first.cue, bankKey);
     const next = pickRandom(assignedCues, first.cue);
-    autoRef.current = { nextCue: next?.cue ?? null, cues: assignedCues };
+    autoRef.current = { nextCue: next?.cue ?? null, cues: assignedCues, bankKey };
     setAutoBank(bankKey);
     setAutoNextCue(next?.cue ?? null);
     setAutoNextAt(Date.now() + AUTO_INTERVAL_MS);
     autoTimerRef.current = setTimeout(tick, AUTO_INTERVAL_MS);
-  }, [autoBank, send, stopAuto, tick]);
+  }, [autoBank, sendCue, stopAuto, tick]);
 
-  const handleSelectCue = useCallback((cue) => {
+  const handleSelectCue = useCallback((cue, bankKey) => {
     if (!isAssignedCue(cue)) return;
     if (autoBank) stopAuto();
-    send({ type: 'cue', cueNumber: cue.cue });
-  }, [autoBank, send, stopAuto]);
+    sendCue(cue.cue, bankKey, cue.colours);
+  }, [autoBank, sendCue, stopAuto]);
 
   const handleClear = useCallback(() => {
     if (autoBank) stopAuto();
@@ -95,29 +106,40 @@ export default function Lighting({ state, send }) {
         send={send}
       />
 
-      <div className="flex-1 flex gap-5 min-h-0 min-w-0">
-        <section className="flex-1 panel p-5 flex flex-col overflow-hidden min-w-0" aria-label="Cue banks">
-          <CueBanks
-            banks={state.config.cueBanks}
-            activeCue={state.activeCue}
-            onSelect={handleSelectCue}
-            autoBank={autoBank}
-            autoNextCue={autoNextCue}
-          />
-        </section>
+      <section className="flex-1 min-h-0 min-w-0 overflow-hidden" aria-label="Cue banks">
+        <CueBanks
+          banks={state.config.cueBanks}
+          activeCue={state.activeCue}
+          onSelect={handleSelectCue}
+          autoBank={autoBank}
+          autoNextCue={autoNextCue}
+          colourConfig={state.config.colourControls}
+          fixtureColours={mainColoursRef.current}
+        />
+      </section>
 
-        <aside
-          className="flex-none min-h-0 flex"
-          style={{ width: EFFECTS_RAIL_WIDTH }}
-          aria-label="Special effects rail"
-        >
-          <SpecialEffectsControls
-            config={state.config.specialEffects}
-            maintenance={state.config.fixtureMaintenance}
-            state={state.specialEffects}
-            send={send}
-          />
-        </aside>
+      <div
+        className="flex-none grid grid-cols-[minmax(0,1fr)_420px] gap-4 min-h-0 min-w-0"
+        style={{ height: 'var(--colour-grid-h)' }}
+      >
+        <ColourControls
+          config={state.config.colourControls}
+          fixtureColours={mainColoursRef.current}
+          onFixtureColour={(fixture, colour) => send({ type: 'fixtureColour', fixture, colour })}
+          onAllColour={(colour) => send({
+            type: 'fixtureColours',
+            colours: Object.fromEntries(MAIN_COLOUR_FIXTURE_IDS.map((fixture) => [fixture, colour]))
+          })}
+        />
+        <PalettePanel
+          config={state.config.colourControls}
+          fixtureColours={mainColoursRef.current}
+          onPalette={(palette) => send({
+            type: 'fixturePalette',
+            palette,
+            fixtures: MAIN_COLOUR_FIXTURE_IDS
+          })}
+        />
       </div>
     </div>
   );
@@ -129,6 +151,9 @@ export default function Lighting({ state, send }) {
 
 function ControlBar({ state, autoBank, autoNextAt, toggleAuto, onClear, send }) {
   const secondsToNext = useCountdown(autoNextAt);
+  const autoBanks = AUTO_CUE_BANKS.filter((key) =>
+    state.config.cueBanks[key]?.cues?.some(isAssignedCue)
+  );
   return (
     <section className="panel px-4 py-[var(--panel-pad-y)] flex-none w-full" aria-label="Control">
       <div className="flex items-end min-w-0 divide-x divide-border/60">
@@ -150,8 +175,11 @@ function ControlBar({ state, autoBank, autoNextAt, toggleAuto, onClear, send }) 
 
         <div className="flex-[1.4] min-w-0 px-6">
           <div className="section-header mb-1.5">Auto Cycle</div>
-          <div className="grid grid-cols-3 gap-2">
-            {AUTO_CUE_BANKS.map((key) => {
+          <div
+            className="grid gap-2"
+            style={{ gridTemplateColumns: `repeat(${Math.max(1, autoBanks.length)}, minmax(0, 1fr))` }}
+          >
+            {autoBanks.map((key) => {
               const bank = state.config.cueBanks[key];
               if (!bank) return null;
               const assigned = bank.cues.filter(isAssignedCue).slice(0, VISIBLE_CUES_PER_BANK);
@@ -304,6 +332,141 @@ function FadeTimePresets({ value, onChange }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Bottom colour controls                                              */
+/* ------------------------------------------------------------------ */
+
+function PalettePanel({ config, fixtureColours = {}, onPalette }) {
+  const fixtures = MAIN_COLOUR_FIXTURE_IDS
+    .map((fixtureId) => config?.fixtures?.find((fixture) => fixture.id === fixtureId))
+    .filter(Boolean);
+  const palettes = (config?.palettes ?? []).filter((palette) => !palette.placeholder);
+  if (!palettes.length || !fixtures.length) return null;
+
+  const coloursById = new Map(config.colours.map((colour) => [colour.id, colour]));
+  const activePalette = palettes.find((palette) =>
+    fixtures.every((fixture) => fixtureColours?.[fixture.id] === palette.colours?.[fixture.id])
+  );
+
+  return (
+    <section className="panel px-4 py-[var(--panel-pad-y)] min-h-0 min-w-0 h-full flex flex-col" aria-label="Colour palettes">
+      <div className="section-header mb-2">Palettes</div>
+      <div
+        className="grid grid-cols-2 gap-2 flex-1 min-h-0"
+        style={{ gridTemplateRows: `repeat(${Math.ceil(palettes.length / 2)}, minmax(0, 1fr))` }}
+      >
+        {palettes.map((palette) => {
+          const selected = activePalette?.id === palette.id;
+          return (
+            <button
+              key={palette.id}
+              type="button"
+              aria-pressed={selected ? 'true' : 'false'}
+              aria-label={`Apply palette ${palette.label}`}
+              title={paletteTitle(palette, fixtures, coloursById)}
+              onClick={() => onPalette(palette.id)}
+              className={`btn h-full min-h-0 w-full overflow-hidden flex flex-col items-center justify-center gap-1.5 px-2 text-[13px] ${
+                selected ? 'btn-active' : 'btn-default'
+              }`}
+              style={{ minHeight: 0 }}
+            >
+              <span className="truncate max-w-full leading-none">{titleCase(palette.label)}</span>
+              <span className="flex gap-1" aria-hidden="true">
+                {fixtures.map((fixture) => (
+                  <span
+                    key={fixture.id}
+                    className={`h-[11px] w-[24px] rounded-[3px] border ${selected ? 'border-black/35' : 'border-white/15'}`}
+                    style={{ backgroundColor: coloursById.get(palette.colours?.[fixture.id])?.hex ?? '#222' }}
+                  />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function paletteTitle(palette, fixtures, coloursById) {
+  return fixtures
+    .map((fixture) => `${fixture.label}: ${coloursById.get(palette.colours?.[fixture.id])?.label ?? '—'}`)
+    .join(' · ');
+}
+
+function ColourControls({ config, fixtureColours = {}, onFixtureColour, onAllColour }) {
+  const fixtures = MAIN_COLOUR_FIXTURE_IDS
+    .map((fixtureId) => config?.fixtures?.find((fixture) => fixture.id === fixtureId))
+    .filter(Boolean);
+  if (!config?.colours?.length || !fixtures.length) return null;
+
+  const colours = config.colours;
+  const allSelectedColour = colours.find((colour) =>
+    fixtures.every((fixture) => fixtureColours?.[fixture.id] === colour.id)
+  );
+  const rows = [
+    { id: 'all', label: 'Both', all: true, selected: allSelectedColour?.id, onSelect: (colour) => onAllColour(colour.id) },
+    ...fixtures.map((fixture) => ({
+      id: fixture.id,
+      label: fixture.label,
+      all: false,
+      selected: fixtureColours?.[fixture.id],
+      onSelect: (colour) => onFixtureColour(fixture.id, colour.id)
+    }))
+  ];
+
+  return (
+    <section className="panel px-4 py-[var(--panel-pad-y)] min-h-0 min-w-0 h-full flex flex-col" aria-label="Fixture colours">
+      <div className="section-header mb-2">Colours</div>
+      <div
+        className="grid flex-1 min-h-0 gap-2"
+        style={{
+          gridTemplateColumns: `82px repeat(${colours.length}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr))`
+        }}
+      >
+        {rows.map((row) => (
+          <React.Fragment key={row.id}>
+            <div className={`flex items-center pr-2 text-[13px] ${row.all ? 'text-white font-medium' : 'text-white/70'}`}>
+              {titleCase(row.label)}
+            </div>
+            {colours.map((colour) => (
+              <ColourCell
+                key={`${row.id}-${colour.id}`}
+                colour={colour}
+                scope={row.label}
+                filled={row.all}
+                selected={row.selected === colour.id}
+                onSelect={() => row.onSelect(colour)}
+              />
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ColourCell({ colour, scope, filled, selected, onSelect }) {
+  const lit = filled || selected;
+  return (
+    <button
+      type="button"
+      aria-pressed={selected ? 'true' : 'false'}
+      aria-label={`${scope}: set ${colour.label}`}
+      title={`${scope} · ${colour.label} · ${colour.slot} · DMX ${colour.dmx}`}
+      onClick={onSelect}
+      className="relative h-full w-full min-h-0 rounded-ui border-2 transition-[background-color] duration-100 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      style={{
+        borderColor: filled && selected ? '#ffffff' : colour.hex,
+        backgroundColor: lit ? colour.hex : '#161616'
+      }}
+    >
+      {selected && <span className="absolute inset-[5px] rounded-[2px] border-2 border-black/55" aria-hidden="true" />}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Cue banks                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -315,93 +478,109 @@ function CueBanks({
   autoNextCue
 }) {
   return (
-    <div className="flex-1 flex items-stretch min-h-0">
-      {CUE_GROUPS.map((keys, groupIndex) => (
-        <React.Fragment key={keys.join('-')}>
-          {groupIndex > 0 && <GroupDivider />}
-          <div className="flex gap-3 min-h-0 min-w-0" style={{ flex: keys.length }}>
-            {keys.map((key) => {
-              const bank = banks[key];
-              if (!bank) return null;
-              return (
-                <BankColumn
-                  key={key}
-                  bankKey={key}
-                  bank={bank}
+    <div
+      className="h-full grid grid-cols-2 gap-4 min-h-0 min-w-0"
+      style={{ gridAutoRows: 'minmax(0, 1fr)' }}
+    >
+      {PRIMARY_CUE_BANKS.map((key) => {
+        if (Array.isArray(key)) {
+          return (
+            <div key={key.join('-')} className="grid grid-cols-2 gap-4 min-h-0 min-w-0">
+              {key.map((groupedKey) => (
+                <BankBlock
+                  key={groupedKey}
+                  bankKey={groupedKey}
+                  bank={banks[groupedKey]}
                   activeCue={activeCue}
-                  onSelect={onSelect}
-                  isAutoRunning={autoBank === key}
-                  autoNextCue={autoBank === key ? autoNextCue : null}
+                  onSelect={(cue) => onSelect(cue, groupedKey)}
+                  isAutoRunning={autoBank === groupedKey}
+                  autoNextCue={autoBank === groupedKey ? autoNextCue : null}
+                  buttonColumns={groupedKey === 'slowCues' ? 3 : 2}
                 />
-              );
-            })}
-          </div>
-        </React.Fragment>
-      ))}
+              ))}
+            </div>
+          );
+        }
+        return (
+          <BankBlock
+            key={key}
+            bankKey={key}
+            bank={banks[key]}
+            activeCue={activeCue}
+            onSelect={(cue) => onSelect(cue, key)}
+            isAutoRunning={autoBank === key}
+            autoNextCue={autoBank === key ? autoNextCue : null}
+            buttonColumns={3}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function GroupDivider() {
-  return (
-    <div className="flex items-stretch px-5 self-stretch flex-none" aria-hidden="true">
-      <div className="w-px bg-border self-stretch" />
-    </div>
-  );
-}
-
-function BankColumn({ bankKey, bank, activeCue, onSelect, isAutoRunning, autoNextCue }) {
+function BankBlock({ bankKey, bank, activeCue, onSelect, isAutoRunning, autoNextCue, buttonColumns }) {
   const isStrobe = bankKey === 'strobeCues';
-  const visible = bank.cues.slice(0, VISIBLE_CUES_PER_BANK);
-  const isLive = visible.some((c) => isAssignedCue(c) && c.cue === activeCue);
+  const visible = (bank?.cues ?? []).filter(isAssignedCue).slice(0, VISIBLE_CUES_PER_BANK);
+  const rows = Math.max(1, Math.ceil(visible.length / buttonColumns));
+  const isLive = visible.some((cue) => cue.cue === activeCue);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 min-w-0">
-      <div className="flex flex-none items-baseline justify-center gap-2 mb-2 min-w-0">
+    <div
+      className="rounded-ui border p-3 h-full flex flex-col overflow-hidden min-w-0"
+      style={{
+        backgroundColor: '#111111',
+        borderColor: isLive ? 'rgba(255, 255, 255, 0.45)' : 'rgba(51, 51, 51, 0.6)',
+        borderTopWidth: 2,
+        borderTopColor: isLive ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.28)'
+      }}
+    >
+      <div className="flex flex-none items-baseline gap-2 mb-2 min-w-0">
         <span className={`text-[14px] truncate ${isLive ? 'text-white font-medium' : 'text-white/70'}`}>
-          {titleCase(bank.label)}
+          {titleCase(bank?.label ?? bankKey)}
         </span>
         {isAutoRunning && <span className="text-[12px] text-amber flex-none">Auto</span>}
       </div>
 
-      <div
-        className="grid gap-1 flex-1 min-h-0"
-        style={{ gridTemplateRows: `repeat(${VISIBLE_CUES_PER_BANK}, minmax(0, 1fr))` }}
-      >
-        {visible.map((c, index) => {
-          const assigned = isAssignedCue(c);
-          const isActive = assigned && activeCue === c.cue;
-          const isNext = assigned && autoNextCue === c.cue;
-          return (
-            <button
-              key={c.id ?? `${bankKey}-${index}`}
-              onClick={() => onSelect(c)}
-              aria-disabled={!assigned}
-              aria-pressed={isActive ? 'true' : 'false'}
-              aria-label={assigned ? `${c.label}, cue ${c.cue}` : `${c.label}, unassigned placeholder`}
-              title={assigned ? `${c.label} - cue ${c.cue}` : `${c.label} - unassigned placeholder`}
-              className={`btn relative h-full w-full min-h-0 text-[13px] overflow-hidden flex items-center justify-center px-2 pt-3 ${
-                isActive
-                  ? `btn-active ${isStrobe ? 'border-2 border-amber' : ''}`
-                  : isNext
-                  ? 'btn-default border-2 border-amber/70'
-                  : !assigned
-                  ? 'bg-btn/60 text-white/45 border border-dashed border-border/70 hover:border-white/25'
-                  : 'btn-default'
-              }`}
-            >
-              <span
-                className={`absolute top-1.5 right-2 text-[10px] leading-none tabular-nums ${
-                  isActive ? 'opacity-60' : 'opacity-45'
+      {visible.length === 0 ? (
+        <div className="flex-1 min-h-0 rounded-ui border border-dashed border-border/45 bg-black/15 flex items-center justify-center text-[12px] text-white/25">
+          No cues assigned
+        </div>
+      ) : (
+        <div
+          className="grid gap-2 flex-1 min-h-0"
+          style={{
+            gridTemplateColumns: `repeat(${buttonColumns}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
+          }}
+        >
+          {visible.map((cue, index) => {
+            const isActive = activeCue === cue.cue;
+            const isNext = autoNextCue === cue.cue;
+            return (
+              <button
+                key={cue.id ?? `${bankKey}-${index}`}
+                onClick={() => onSelect(cue)}
+                aria-pressed={isActive ? 'true' : 'false'}
+                aria-label={`${cue.label}, cue ${cue.cue}`}
+                title={`${cue.label} - cue ${cue.cue}`}
+                className={`btn relative h-full w-full min-h-0 text-[14px] overflow-hidden flex items-center justify-center px-2 pt-3 ${
+                  isActive
+                    ? `btn-active ${isStrobe ? 'border-2 border-amber' : ''}`
+                    : isNext
+                    ? 'btn-default border-2 border-amber/70'
+                    : 'btn-default'
                 }`}
+                style={{ minHeight: 0 }}
               >
-                {assigned ? c.cue : ''}
-              </span>
-              <span className="line-clamp-2 leading-tight text-center">{titleCase(c.label)}</span>
-            </button>
-          );
-        })}
-      </div>
+                <span className={`absolute top-1.5 right-2 text-[10px] leading-none tabular-nums ${isActive ? 'opacity-60' : 'opacity-45'}`}>
+                  {cue.cue}
+                </span>
+                <span className="line-clamp-2 leading-tight text-center">{titleCase(cue.label)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

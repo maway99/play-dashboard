@@ -12,6 +12,7 @@
     --slider-h: clamp(38px, 4.6vh, 52px);
     --panel-pad-y: clamp(8px, 1.3vh, 12px);
     --page-pad: clamp(14px, 2.2vh, 32px);
+    --colour-grid-h: clamp(210px, 29vh, 310px);
   }
 
   body {
@@ -95,6 +96,7 @@
       transform: none;
     }
   }
+
 }
 
 input[type="range"] {
