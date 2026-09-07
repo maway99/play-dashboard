@@ -41,14 +41,14 @@ Prerequisites (install manually before running setup):
 
 ## Public repo + venue PC (no GitHub login)
 
-Repo: **https://github.com/maway99/play-gloucester-room-one-panel** (public). `git pull` on the venue PC needs no GitHub account. `config.json` is included in the repo.
+Repo: **https://github.com/maway99/play-dashboard** (public). `git pull` on the venue PC needs no GitHub account. `config.json` is included in the repo.
 
 **First time on a venue PC:**
 
 ```bat
 cd C:\
-git clone https://github.com/maway99/play-gloucester-room-one-panel.git
-cd play-gloucester-room-one-panel
+git clone https://github.com/maway99/play-dashboard.git
+cd play-dashboard
 ```
 
 Review `config.json` if this PC’s IPs differ, then **right-click `setup.bat` → Run as administrator**, reboot.
@@ -56,7 +56,7 @@ Review `config.json` if this PC’s IPs differ, then **right-click `setup.bat` �
 **Updates on the venue PC (no login):**
 
 ```bat
-cd C:\play-gloucester-room-one-panel
+cd C:\play-dashboard
 update.bat
 ```
 
@@ -71,7 +71,7 @@ PM2 remembers processes **per Windows user account**, not inside this project fo
 **On each new PC (once):**
 
 1. Install **Node.js LTS** and **Google Chrome**
-2. Copy or clone the project (e.g. `C:\play-gloucester-room-one-panel\`)
+2. Copy or clone the project (e.g. `C:\play-dashboard\`)
 3. Edit `config.json` if IPs differ
 4. **Right-click `setup.bat` → Run as administrator**
 5. Reboot to test auto-start

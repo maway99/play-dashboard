@@ -16,7 +16,7 @@ Run through this **on-site, on the actual lighting PC, with the MA2 show file fi
 
 ## Install
 
-- [ ] Project copied to a permanent path (e.g. `C:\play-gloucester-room-one-panel\`)
+- [ ] Project copied to a permanent path (e.g. `C:\play-dashboard\`)
 - [ ] `config.json` reviewed end-to-end — every executor number cross-checked against the show file
 - [ ] `setup.bat` run as Administrator, no errors
 - [ ] `pm2 status` shows `play-gloucester-room-one-panel` as `online`
