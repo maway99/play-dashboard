@@ -19,10 +19,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
+set "PATH=%ROOT%\vendor\node-win-x64;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
 
-where node >nul 2>&1 || (echo ERROR: Node.js not found. Install Node.js LTS. & pause & exit /b 1)
-where npm  >nul 2>&1 || (echo ERROR: npm not found. Reinstall Node.js. & pause & exit /b 1)
+where node >nul 2>&1 || (echo ERROR: Node.js not found and the offline runtime is missing. & pause & exit /b 1)
+where npm  >nul 2>&1 || (echo ERROR: npm not found and the offline runtime is incomplete. & pause & exit /b 1)
 
 if not exist "%ROOT%\config.json" (
     echo ERROR: config.json not found in %ROOT%
@@ -30,14 +30,16 @@ if not exist "%ROOT%\config.json" (
     exit /b 1
 )
 
-set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME%" (
-    echo ERROR: Google Chrome not found. Install Chrome first.
+set "BROWSER=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+if not exist "%BROWSER%" (
+    echo ERROR: Neither Google Chrome nor Microsoft Edge was found.
     pause
     exit /b 1
 )
-echo     Chrome: %CHROME%
+echo     Kiosk browser: %BROWSER%
 
 echo.
 echo [1/8] Verify lighting network
@@ -46,34 +48,40 @@ if errorlevel 1 goto :fail
 
 echo.
 echo [2/8] npm install ^(server^)
-call npm install --no-audit --no-fund
-if errorlevel 1 goto :fail
+if exist "%ROOT%\node_modules\express\package.json" if exist "%ROOT%\node_modules\ws\package.json" if exist "%ROOT%\node_modules\pm2\package.json" (
+    echo     Using bundled production dependencies
+) else (
+    call npm install --no-audit --no-fund
+    if errorlevel 1 goto :fail
+)
 
 echo.
 echo [3/8] npm install ^(client^)
-call npm --prefix client install --no-audit --no-fund
-if errorlevel 1 goto :fail
+if exist "%ROOT%\client\dist\index.html" (
+    echo     Using bundled production client
+) else (
+    call npm --prefix client install --no-audit --no-fund
+    if errorlevel 1 goto :fail
+)
 
 echo.
 echo [4/8] Build client
-call npm --prefix client run build
-if errorlevel 1 goto :fail
-if not exist "%ROOT%\client\dist\index.html" (
-    echo ERROR: client\dist\index.html missing after build.
+if exist "%ROOT%\client\dist\index.html" (
+    echo     Prebuilt client ready
+) else (
+    call npm --prefix client run build
+    if errorlevel 1 goto :fail
+)
+if not exist "%ROOT%\client\dist\index.html" goto :fail
+
+echo.
+echo [5/8] Verify local PM2
+if not exist "%ROOT%\node_modules\pm2\bin\pm2" (
+    echo ERROR: Local PM2 dependency missing.
     goto :fail
 )
-
-where pm2 >nul 2>&1
-if errorlevel 1 (
-    echo.
-    echo [5/8] Installing pm2 globally
-    call npm install -g pm2
-    if errorlevel 1 goto :fail
-    set "PATH=%APPDATA%\npm;%PATH%"
-) else (
-    echo.
-    echo [5/8] pm2 already installed
-)
+call "%ROOT%\scripts\pm2-local.cmd" --version
+if errorlevel 1 goto :fail
 
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 

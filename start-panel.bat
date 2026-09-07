@@ -72,7 +72,7 @@ REM -----------------------------------------------------------------------
 echo [3/4] Starting panel server...
 echo [3/4] Starting panel server>>"%LOG%"
 
-set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
+set "PATH=%ROOT%\vendor\node-win-x64;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
 call "%ROOT%\scripts\start-panel-server.bat" logon >>"%LOG%" 2>&1
 if errorlevel 1 (
     echo       Server failed to start - check logs\startup.log
@@ -86,21 +86,23 @@ REM -----------------------------------------------------------------------
 echo [4/4] Launching Chrome kiosk...
 echo [4/4] Launching Chrome kiosk>>"%LOG%"
 
-set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME%" (
-    echo       ERROR: Google Chrome not found. Install it first.
-    echo [4/4] ERROR: Chrome not found>>"%LOG%"
+set "BROWSER=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+if not exist "%BROWSER%" set "BROWSER=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+if not exist "%BROWSER%" (
+    echo       ERROR: Neither Google Chrome nor Microsoft Edge was found.
+    echo [4/4] ERROR: kiosk browser not found>>"%LOG%"
     pause
     exit /b 1
 )
 
-if exist "%ROOT%\scripts\close-play-gloucester-room-one-chrome.ps1" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\close-play-gloucester-room-one-chrome.ps1" >>"%LOG%" 2>&1
+if exist "%ROOT%\scripts\close-play-kiosk.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\close-play-kiosk.ps1" >>"%LOG%" 2>&1
 )
 
 echo       Opening http://127.0.0.1:3000
-start "" "%CHROME%" ^
+start "" "%BROWSER%" ^
   --kiosk ^
   --app=http://127.0.0.1:3000/ ^
   --disable-infobars ^

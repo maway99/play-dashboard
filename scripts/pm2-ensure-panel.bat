@@ -8,6 +8,7 @@ set "ROOT=%~dp0.."
 cd /d "%ROOT%"
 
 REM Ensure node + global npm tools are on PATH (common issue right after install).
+if exist "%ROOT%\vendor\node-win-x64\" set "PATH=%ROOT%\vendor\node-win-x64\;%PATH%"
 if exist "%ProgramFiles%\nodejs\" set "PATH=%ProgramFiles%\nodejs\;%PATH%"
 if exist "%ProgramFiles(x86)%\nodejs\" set "PATH=%ProgramFiles(x86)%\nodejs\;%PATH%"
 if exist "%APPDATA%\npm\" set "PATH=%APPDATA%\npm\;%PATH%"
@@ -18,14 +19,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+set "PM2=%ROOT%\scripts\pm2-local.cmd"
+if exist "%PM2%" goto :found_pm2
 set "PM2="
-where pm2 >nul 2>&1
-if %errorlevel%==0 (
-  for /f "delims=" %%I in ('where pm2 2^>nul') do (
-    set "PM2=%%I"
-    goto :found_pm2
-  )
-)
 if exist "%APPDATA%\npm\pm2.cmd" set "PM2=%APPDATA%\npm\pm2.cmd"
 
 :found_pm2

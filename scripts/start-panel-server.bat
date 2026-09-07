@@ -17,7 +17,7 @@ echo.>>"%LOG%"
 echo ==================================================>>"%LOG%"
 echo [%date% %time%] start-panel-server mode=%MODE%>>"%LOG%"
 
-set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
+set "PATH=%ROOT%\vendor\node-win-x64;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
 
 set "NODE_EXE="
 for /f "delims=" %%N in ('where node 2^>nul') do set "NODE_EXE=%%N" & goto :have_node
@@ -27,7 +27,8 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
-set "PM2=%APPDATA%\npm\pm2.cmd"
+set "PM2=%ROOT%\scripts\pm2-local.cmd"
+if not exist "%PM2%" set "PM2=%APPDATA%\npm\pm2.cmd"
 if not exist "%PM2%" set "PM2=pm2"
 
 if not exist "%ROOT%\node_modules\" (

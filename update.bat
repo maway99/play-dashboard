@@ -5,6 +5,8 @@ REM On a NEW PC, run setup.bat as Administrator first.
 
 cd /d "%~dp0"
 setlocal
+set "ROOT=%CD%"
+set "PATH=%ROOT%\vendor\node-win-x64;%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
 
 echo === Play Gloucester Room One Panel update ===
 

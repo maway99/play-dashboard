@@ -58,7 +58,8 @@ if ($streamDeckState.companion.baseUrl -ne 'http://127.0.0.1:8000') {
   exit 1
 }
 
-$kiosk = Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction SilentlyContinue |
+$kiosk = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -in @('chrome.exe', 'msedge.exe') } |
   Where-Object { $_.CommandLine -like '*Play Gloucester Room One Panel Chrome*' } |
   Select-Object -First 1
 if (-not $kiosk) {

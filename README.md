@@ -37,6 +37,17 @@ Prerequisites (install manually before running setup):
 - Bitfocus Companion with the Stream Deck profile configured
 - grandMA2 onPC with **Telnet Remote → Login Enabled** in Global Settings
 
+### Offline install over the lighting network
+
+The offline deployment ZIP includes the built client, production dependencies, project-local PM2, a portable Windows Node runtime, and `Carabiner.exe`. No internet connection, Git installation, or separate Chrome installation is required; the kiosk falls back to Microsoft Edge.
+
+1. On the Mac connected to the lighting network, serve the ZIP on the Mac's `2.x.x.x` address.
+2. On the lighting PC, download the ZIP in Edge and extract its `play-dashboard` folder to `C:\play-dashboard`.
+3. Right-click `C:\play-dashboard\setup.bat` and choose **Run as administrator**.
+4. Wait for `INSTALL VERIFIED`, then reboot and confirm the kiosk returns after Windows logon.
+
+The offline bundle is for first installation. Once the PC has internet access, install Git if you want `update.bat` to pull future changes automatically.
+
 ---
 
 ## Public repo + venue PC (no GitHub login)
