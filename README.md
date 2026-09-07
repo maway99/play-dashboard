@@ -4,6 +4,8 @@ Touch-panel control interface for Play Gloucester Room One (Hereford). Drives gr
 
 Venue grandMA2 build: **grandMA2 onPC 3.9.61.3**.
 
+Current venue topology, verified service state, recovery locations, and maintenance notes are recorded in [`VENUE_HANDOVER.md`](VENUE_HANDOVER.md). Update it whenever the installation or control mapping changes.
+
 This README is for whoever maintains the venue PC. Architecture and design rationale live in `play-gloucester-room-one-touch-panel-brief.md`.
 
 ---
