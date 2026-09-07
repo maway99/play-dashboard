@@ -42,12 +42,12 @@ if not exist "%BROWSER%" (
 echo     Kiosk browser: %BROWSER%
 
 echo.
-echo [1/8] Verify lighting network
+echo [1/10] Verify lighting network
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\verify-lighting-network.ps1"
 if errorlevel 1 goto :fail
 
 echo.
-echo [2/8] npm install ^(server^)
+echo [2/10] npm install ^(server^)
 if exist "%ROOT%\node_modules\express\package.json" if exist "%ROOT%\node_modules\ws\package.json" if exist "%ROOT%\node_modules\pm2\package.json" (
     echo     Using bundled production dependencies
 ) else (
@@ -56,7 +56,7 @@ if exist "%ROOT%\node_modules\express\package.json" if exist "%ROOT%\node_module
 )
 
 echo.
-echo [3/8] npm install ^(client^)
+echo [3/10] npm install ^(client^)
 if exist "%ROOT%\client\dist\index.html" (
     echo     Using bundled production client
 ) else (
@@ -65,7 +65,7 @@ if exist "%ROOT%\client\dist\index.html" (
 )
 
 echo.
-echo [4/8] Build client
+echo [4/10] Build client
 if exist "%ROOT%\client\dist\index.html" (
     echo     Prebuilt client ready
 ) else (
@@ -75,7 +75,7 @@ if exist "%ROOT%\client\dist\index.html" (
 if not exist "%ROOT%\client\dist\index.html" goto :fail
 
 echo.
-echo [5/8] Verify local PM2
+echo [5/10] Verify local PM2
 if not exist "%ROOT%\node_modules\pm2\bin\pm2" (
     echo ERROR: Local PM2 dependency missing.
     goto :fail
@@ -86,7 +86,12 @@ if errorlevel 1 goto :fail
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 
 echo.
-echo [6/8] Install Ableton Link bridge
+echo [6/10] Install Microsoft Visual C++ runtime
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\install-vc-runtime.ps1" -Root "%ROOT%"
+if errorlevel 1 goto :fail
+
+echo.
+echo [7/10] Install Ableton Link bridge
 if not exist "%ROOT%\tools\Carabiner.exe" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\get-carabiner.ps1"
     if errorlevel 1 goto :fail
@@ -96,17 +101,17 @@ if not exist "%ROOT%\tools\Carabiner.exe" (
 netsh advfirewall firewall delete rule name="Play Gloucester Ableton Link" >nul 2>&1
 netsh advfirewall firewall add rule name="Play Gloucester Ableton Link" dir=in action=allow program="%ROOT%\tools\Carabiner.exe" protocol=UDP localport=20808 profile=any enable=yes >nul
 if errorlevel 1 goto :fail
+netsh advfirewall firewall delete rule name="Play Dashboard Maintenance HTTP" >nul 2>&1
+netsh advfirewall firewall add rule name="Play Dashboard Maintenance HTTP" dir=in action=allow protocol=TCP localport=3000 remoteip=2.0.0.50 profile=any enable=yes >nul
+if errorlevel 1 goto :fail
 
 echo.
-echo [7/8] Verify Bitfocus Companion
+echo [8/10] Verify Bitfocus Companion
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\start-companion.ps1"
 if errorlevel 1 goto :fail
 
 echo.
-echo [8/8] Register Task Scheduler ^(runs start-panel.bat interactively at logon^)
-
-set "RUNAS=%USERNAME%"
-if /i not "%USERDOMAIN%"=="%COMPUTERNAME%" set "RUNAS=%USERDOMAIN%\%USERNAME%"
+echo [9/10] Register Task Scheduler ^(runs start-panel.bat interactively at logon^)
 
 REM Remove any legacy tasks from older installs.
 schtasks /Delete /TN "Trilogy PM2 Resurrect" /F >nul 2>&1
@@ -118,12 +123,13 @@ schtasks /Delete /TN "Play Gloucester Room One PM2 Resurrect" /F >nul 2>&1
 schtasks /Delete /TN "Play Gloucester Room One Edge Kiosk"     /F >nul 2>&1
 schtasks /Delete /TN "Play Gloucester Room One Panel"          /F >nul 2>&1
 
-schtasks /Create /TN "Play Gloucester Room One Panel" /TR "%ROOT%\start-panel.bat" /SC ONLOGON /RU "%RUNAS%" /RL LIMITED /IT /F
-if errorlevel 1 (
-    echo ERROR: Could not register Task Scheduler task.
-    goto :fail
-)
-echo     Task Scheduler: Play Gloucester Room One Panel ^(runs at logon for %RUNAS%^)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\register-startup-task.ps1" -Root "%ROOT%"
+if errorlevel 1 goto :fail
+
+echo.
+echo [10/10] Configure unattended venue logon
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\configure-venue-autologon.ps1"
+if errorlevel 1 goto :fail
 
 REM Remove any legacy Startup folder shortcuts.
 set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"

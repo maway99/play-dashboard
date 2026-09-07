@@ -15,6 +15,13 @@ if (-not $task) {
 }
 Write-Host "Scheduled task OK: $($task.State)"
 
+$winlogon = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+if ($winlogon.AutoAdminLogon -ne '1') {
+  Write-Error 'Windows automatic logon is not enabled, so the kiosk cannot start unattended after boot.'
+  exit 1
+}
+Write-Host "Automatic logon OK: $($winlogon.DefaultDomainName)\$($winlogon.DefaultUserName)"
+
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 $panelState = $null
 $streamDeckState = $null
