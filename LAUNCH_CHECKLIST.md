@@ -7,6 +7,7 @@ Run through this **on-site, on the actual lighting PC, with the MA2 show file fi
 ## Pre-install
 
 - [ ] grandMA2 show file is finalised; every cue/executor referenced in `config.json` exists in the show
+- [ ] grandMA2 onPC `3.9.61.3` is installed at its standard MA Lighting path
 - [ ] MA2 → Setup → Network → **Telnet Remote → Login Enabled = Yes**
 - [ ] A `password` is set in MA2 for the panel's user (not blank for production)
 - [ ] Node.js LTS installed on the MA2 PC

@@ -2,6 +2,8 @@
 
 Touch-panel control interface for Play Gloucester Room One (Hereford). Drives grandMA2 via telnet from a 1920×1080 touchscreen connected to the MA2 PC.
 
+Venue grandMA2 build: **grandMA2 onPC 3.9.61.3**.
+
 This README is for whoever maintains the venue PC. Architecture and design rationale live in `play-gloucester-room-one-touch-panel-brief.md`.
 
 ---
@@ -114,6 +116,7 @@ All venue-specific values live here. **No hardcoded values in code.**
 | Section          | What to set                                                                 |
 |------------------|------------------------------------------------------------------------------|
 | `ma2.ip`         | `127.0.0.1` if panel is on the same PC as onPC (recommended)                |
+| `ma2.version`    | Documented venue onPC build (`3.9.61.3`)                                     |
 | `ma2.password`   | Whatever you set in MA2's Telnet Remote settings                            |
 | `cueStack`       | Page/exec of the single cue stack the panel drives                          |
 | `colourControls.*` | Beam/Strobe colour-picker cue mappings and bottom palette controls |
