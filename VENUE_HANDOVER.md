@@ -64,6 +64,24 @@ powershell -ExecutionPolicy Bypass -File C:\play-dashboard\scripts\verify-instal
 
 The one remaining destructive acceptance test is a real Windows reboot. Only run it when MA2 may safely be interrupted, then confirm the kiosk and all green status indicators return unattended.
 
+## Art-Net dropout capture
+
+Wireshark `4.6.8` is installed at `C:\Program Files\Wireshark`. Npcap was deliberately not installed while the lighting network was active, because adding its capture driver may briefly disturb the Ethernet adapter or require a reboot. Live Art-Net evidence is collected with Windows Packet Monitor and then opened in Wireshark.
+
+Start a 256 MB circular capture of only UDP port `6454`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\play-dashboard\scripts\start-artnet-capture.ps1
+```
+
+Immediately after the next visible dropout, stop and convert it:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\play-dashboard\scripts\stop-artnet-capture.ps1 -OpenInWireshark
+```
+
+Use the Wireshark display filter `artnet || udp.port == 6454`. Check whether ArtDmx packets stop leaving the MA2 PC, continue with sequence gaps, switch source address, or continue normally while the node output fails. That separates a sender/software fault from a switch/cable/node fault. Keep the capture running only while diagnosing; the circular size limit prevents it filling the system drive.
+
 ## Installation, updates, and recovery
 
 - Production directory: `C:\play-dashboard`
