@@ -66,7 +66,7 @@ The one remaining destructive acceptance test is a real Windows reboot. Only run
 
 ## Art-Net dropout capture
 
-Wireshark `4.6.8` is installed at `C:\Program Files\Wireshark`. Npcap was deliberately not installed while the lighting network was active, because adding its capture driver may briefly disturb the Ethernet adapter or require a reboot. Live Art-Net evidence is collected with Windows Packet Monitor and then opened in Wireshark.
+Wireshark `4.6.8` is installed at `C:\Program Files\Wireshark`. Its signature-verified installer is retained at `C:\play-dashboard\tools\Wireshark-4.6.8-x64.exe` (SHA-256 `8eba737cb6875d9b3709228d37893f71125bdc50d7148e24d9cdc755259e9c3a`). Npcap was deliberately not installed while the lighting network was active, because adding its capture driver may briefly disturb the Ethernet adapter or require a reboot. Live Art-Net evidence is collected with Windows Packet Monitor and then opened in Wireshark.
 
 Start a 256 MB circular capture of only UDP port `6454`:
 
