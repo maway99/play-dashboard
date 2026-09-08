@@ -775,30 +775,32 @@ function dispatchMaintenanceCommand(scope, action, fixtureId) {
 
 function findSpecialEffectCue(groupId, actionId) {
   const effects = config.specialEffects;
-  const page = effects?.cueStack?.page;
-  const exec = effects?.cueStack?.exec;
+  const group = effects?.groups?.find(g => g.id === groupId);
+  const page = group?.cueStack?.page ?? effects?.cueStack?.page;
+  const exec = group?.cueStack?.exec ?? effects?.cueStack?.exec;
   if (!effects?.configured || !validCueNumber(page) || !validCueNumber(exec)) return null;
 
-  const group = effects.groups?.find(g => g.id === groupId);
   const action = group?.actions?.find(a => a.id === actionId);
   if (!validCueNumber(action?.cue)) return null;
 
+  const activationMode = action.activationMode === 'hold' ? 'hold' : 'timed';
   const durationMs = Math.max(1, Number(action.durationMs) || 3000);
-  return { page, exec, cue: action.cue, durationMs };
+  return { page, exec, cue: action.cue, activationMode, durationMs };
 }
 
 function configuredSpecialEffectExecutors() {
   const effects = config.specialEffects;
   if (!effects?.configured) return [];
 
-  const page = effects.cueStack?.page;
-  const exec = effects.cueStack?.exec;
-  if (!validCueNumber(page) || !validCueNumber(exec)) return [];
-
-  const hasConfiguredAction = effects.groups?.some(group =>
-    group.actions?.some(action => validCueNumber(action.cue))
-  );
-  return hasConfiguredAction ? [{ page, exec }] : [];
+  const executors = new Map();
+  for (const group of effects.groups ?? []) {
+    if (!group.actions?.some(action => validCueNumber(action.cue))) continue;
+    const page = group.cueStack?.page ?? effects.cueStack?.page;
+    const exec = group.cueStack?.exec ?? effects.cueStack?.exec;
+    if (!validCueNumber(page) || !validCueNumber(exec)) continue;
+    executors.set(`${page}.${exec}`, { page, exec });
+  }
+  return [...executors.values()];
 }
 
 function sendConfiguredSpecialEffectSafetyOffs() {
@@ -810,7 +812,7 @@ function sendConfiguredSpecialEffectSafetyOffs() {
 function deactivateSpecialEffect(groupId, { sendOff = true, shouldBroadcast = true } = {}) {
   const active = specialEffectTimers.get(groupId);
   if (active) {
-    clearTimeout(active.timer);
+    if (active.timer) clearTimeout(active.timer);
     specialEffectTimers.delete(groupId);
     if (sendOff) ma2.send(`Off Exec ${active.page}.${active.exec}`);
   }
@@ -871,22 +873,39 @@ function fireSpecialEffect(groupId, actionId) {
   groupState.fired[actionId] = true;
   groupState.armed = false;
 
-  const timer = setTimeout(() => {
-    const active = specialEffectTimers.get(groupId);
-    if (!active || active.timer !== timer) return;
-    deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: true });
-    console.log('[SpecialEffects] Timed effect released', {
-      groupId,
-      actionId,
-      executor: `${assignment.page}.${assignment.exec}`,
-      durationMs: assignment.durationMs
-    });
-  }, assignment.durationMs);
-  specialEffectTimers.set(groupId, { timer, ...assignment, actionId });
+  if (assignment.activationMode === 'hold') {
+    specialEffectTimers.set(groupId, { timer: null, ...assignment, actionId });
+  } else {
+    const timer = setTimeout(() => {
+      const active = specialEffectTimers.get(groupId);
+      if (!active || active.timer !== timer) return;
+      deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: true });
+      console.log('[SpecialEffects] Timed effect released', {
+        groupId,
+        actionId,
+        executor: `${assignment.page}.${assignment.exec}`,
+        durationMs: assignment.durationMs
+      });
+    }, assignment.durationMs);
+    specialEffectTimers.set(groupId, { timer, ...assignment, actionId });
+  }
 
   broadcastState();
   scheduleCompanionArmFeedbackSync();
   return assignment;
+}
+
+function releaseSpecialEffect(groupId, actionId) {
+  const active = specialEffectTimers.get(groupId);
+  if (!active || active.activationMode !== 'hold' || active.actionId !== actionId) return null;
+
+  deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: true });
+  console.log('[SpecialEffects] Held effect released', {
+    groupId,
+    actionId,
+    executor: `${active.page}.${active.exec}`
+  });
+  return active;
 }
 
 // ---------- Bitfocus Companion Stream Deck bridge ----------
@@ -1007,7 +1026,7 @@ function handleCompanionButtonPress(id, button) {
     return;
   }
 
-  if (button.type === 'specialEffectFire') {
+  if (button.type === 'specialEffectFire' || button.type === 'specialEffectHold') {
     const assignment = fireSpecialEffect(button.group, button.action);
     if (!assignment) return;
     markCompanionAction({
@@ -1017,12 +1036,28 @@ function handleCompanionButtonPress(id, button) {
       action: button.action,
       cue: assignment.cue,
       executor: `${assignment.page}.${assignment.exec}`,
-      durationMs: assignment.durationMs
+      activationMode: assignment.activationMode,
+      durationMs: assignment.activationMode === 'timed' ? assignment.durationMs : null,
+      phase: 'press'
     });
   }
 }
 
 function handleCompanionButtonRelease(id, button) {
+  if (button.type === 'specialEffectHold') {
+    const assignment = releaseSpecialEffect(button.group, button.action);
+    if (!assignment) return;
+    markCompanionAction({
+      id,
+      type: button.type,
+      group: button.group,
+      action: button.action,
+      executor: `${assignment.page}.${assignment.exec}`,
+      phase: 'release'
+    });
+    return;
+  }
+
   if (button.type !== 'momentarySequence') return;
 
   const target = releaseStreamDeckSequence(button.action);
@@ -1103,13 +1138,14 @@ function specialEffectFeedbackButtonEntries() {
   return configuredCompanionButtons().filter(([, button]) =>
     button.type === 'specialEffectArm' ||
     button.type === 'specialEffectFire' ||
+    button.type === 'specialEffectHold' ||
     button.type === 'specialEffectFireFeedback'
   );
 }
 
 async function applyCompanionSpecialEffectFeedback(button, armed) {
   const feedbackConfig = companionConfig();
-  const isFireButton = button.type === 'specialEffectFire' || button.type === 'specialEffectFireFeedback';
+  const isFireButton = button.type === 'specialEffectFire' || button.type === 'specialEffectHold' || button.type === 'specialEffectFireFeedback';
   const firing = isFireButton && !!state.specialEffects[button.group]?.fired?.[button.action];
   const style = isFireButton
     ? (firing
@@ -1283,6 +1319,24 @@ app.post('/api/actions/special-effect-fire/:group/:action', (req, res) => {
     exec: assignment.exec,
     cue: assignment.cue,
     durationMs: assignment.durationMs,
+    activationMode: assignment.activationMode,
+    ma2: state.ma2
+  });
+});
+
+app.post('/api/actions/special-effect-release/:group/:action', (req, res) => {
+  const assignment = releaseSpecialEffect(req.params.group, req.params.action);
+  if (!assignment) {
+    return res.status(409).json({ ok: false, error: 'Held effect is not active' });
+  }
+
+  return res.json({
+    ok: true,
+    group: req.params.group,
+    action: req.params.action,
+    page: assignment.page,
+    exec: assignment.exec,
+    cue: assignment.cue,
     ma2: state.ma2
   });
 });

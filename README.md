@@ -143,9 +143,9 @@ Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value.
 
 ### Special effects
 
-Special-effects controls remain hidden from the Lighting tab, but the Stream Deck Confetti controls are configured. ARM CONFETTI enables exactly one fire action. FIRE 1 runs the inside confetti cue (`Cue 1 Exec 4.3`) and FIRE 2 runs the outside confetti cue (`Cue 2 Exec 4.3`). Either action disarms immediately and automatically sends `Off Exec 4.3` after 3 seconds. A dashboard restart or MA2 reconnect also sends the safety off command so the executor cannot remain active.
+Special-effects controls remain hidden from the Lighting tab, but the Stream Deck Confetti and CO2 controls are configured. ARM CONFETTI enables exactly one fire action. FIRE 1 runs the inside confetti cue (`Cue 1 Exec 4.3`) and FIRE 2 runs the outside confetti cue (`Cue 2 Exec 4.3`). Either action disarms immediately and automatically sends `Off Exec 4.3` after 3 seconds.
 
-CO2 remains unconfigured and cannot fire. Do not assign its cue until the physical effect routing has been verified against the final grandMA2 show file.
+ARM CO2 enables one held fire. Pressing CO2 FIRE runs `Cue 1 Exec 4.4`; releasing the button sends `Off Exec 4.4`. It disarms as soon as firing begins, so every new burst requires another deliberate arm. A dashboard restart or MA2 reconnect sends safety-off commands for both special-effect executors so neither can remain active.
 
 ### Stream Deck / Companion bridge
 
@@ -168,10 +168,10 @@ The current mapping watches:
 | Confetti - Arm | `1 / 1 / 6` | Dashboard arm toggle | Local panel state |
 | CO2 - Arm | `1 / 1 / 7` | Dashboard arm toggle | Local panel state |
 | Confetti - Fire 1 | `1 / 2 / 6` | Timed inside confetti fire | `Cue 1 Exec 4.3`, then Off after 3s |
-| CO2 - Fire | `1 / 2 / 7` | Fire-key visual feedback | Follows CO2 arm state |
+| CO2 - Fire | `1 / 2 / 7` | Held CO2 fire | `Cue 1 Exec 4.4` on press; Off on release |
 | Confetti - Fire 2 | `1 / 3 / 6` | Timed outside confetti fire | `Cue 2 Exec 4.3`, then Off after 3s |
 
-Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the server's local arm state, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. Confetti FIRE 1 and FIRE 2 are ignored while disarmed, show `FIRING` during their three-second output, and return to the disarmed style when the timed release completes.
+Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the server's local arm state, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. All fire buttons are ignored while disarmed. Confetti FIRE 1 and FIRE 2 show `FIRING` during their three-second output; CO2 FIRE shows `FIRING` only while held and releases immediately when the button is released.
 
 `pollMs` and `confirmPolls` control bridge polling and active-state filtering. Momentary sequence controls execute every distinct Companion press event without a cooldown, allowing rapid repeated taps. Per-button `cooldownMs` remains available for latching controls such as Clear and effect-arm buttons.
 
