@@ -71,7 +71,7 @@ The one remaining destructive acceptance test is a real Windows reboot. Only run
 
 Wireshark `4.6.8` is installed at `C:\Program Files\Wireshark`. Its signature-verified installer is retained at `C:\play-dashboard\tools\Wireshark-4.6.8-x64.exe` (SHA-256 `8eba737cb6875d9b3709228d37893f71125bdc50d7148e24d9cdc755259e9c3a`). Npcap was deliberately not installed while the lighting network was active, because adding its capture driver may briefly disturb the Ethernet adapter or require a reboot. Live Art-Net evidence is collected with Windows Packet Monitor and then opened in Wireshark.
 
-Start a 256 MB circular capture of only UDP port `6454`:
+Start a 256 MB circular capture of UDP port `6454`, together with a timestamped reachability monitor for the NET8 at `2.0.0.1`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File C:\play-dashboard\scripts\start-artnet-capture.ps1
@@ -84,6 +84,14 @@ powershell -ExecutionPolicy Bypass -File C:\play-dashboard\scripts\stop-artnet-c
 ```
 
 Use the Wireshark display filter `artnet || udp.port == 6454`. Check whether ArtDmx packets stop leaving the MA2 PC, continue with sequence gaps, switch source address, or continue normally while the node output fails. That separates a sender/software fault from a switch/cable/node fault. Keep the capture running only while diagnosing; the circular size limit prevents it filling the system drive.
+
+### 8 September 2026 dropout evidence
+
+Capture `C:\play-dashboard\logs\artnet-20260908-150700.pcapng` covered 15:07:01–15:18:25 and was stopped immediately after a reported dropout. It contained 6,200 ArtDmx packets from `2.0.0.10` to `2.0.0.1`, covering wire universes 0–6. Every universe continued through the end of the capture with zero sequence jumps and a maximum refresh gap of 1.072 seconds. The NET8 continued returning unicast ArtPollReply packets with a maximum gap of 5.035 seconds. Windows Packet Monitor reported zero lost capture events and zero packet drops.
+
+The same-day Windows System log also contains a separate confirmed NIC failure at 14:45:38–14:46:24. The Intel I219-LM disconnected and Windows NDIS reset it twice, including the explicit reason that the hardware had stopped responding to driver commands. The adapter had reset five times since initialization. Energy Efficient Ethernet and Ultra Low Power Mode were enabled; the NIC power-management option allowing Windows to turn the device off was already disabled. No NIC reset event coincided with the 15:18 capture.
+
+The node identifies as an ADJ NET8 on firmware `V1.10`. All eight ports are configured as Art-Net outputs at 30 Hz with RDM disabled. Its Signal Loss behavior is currently `Play Show Loop`, not `Hold Last`. Do not change the node or NIC during a show. In a maintenance window, first set Signal Loss to Hold Last, then disable Energy Efficient Ethernet, Ultra Low Power Mode, and Reduce Speed On Power Down on the Intel adapter; applying NIC properties will briefly interrupt Ethernet. Re-capture after each change so the actual fix remains attributable.
 
 ## Installation, updates, and recovery
 
