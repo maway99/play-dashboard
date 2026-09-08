@@ -40,6 +40,7 @@ For each, press the panel control and confirm the **MA2 command line** reacts co
 - [ ] **End of Night** — fire while a cue is active. EOTN sequence runs and previous cue clears.
 - [ ] **EOTN release** — with EOTN active, press any cue. EOTN goes off, new cue fires.
 - [ ] **Disables** — toggle each fixture group off. That group goes dark. Toggle back on, returns. Sidebar badge increments correctly.
+- [ ] **Confetti safety (effects physically isolated or authorised only)** — FIRE 1 and FIRE 2 do nothing while disarmed. ARM CONFETTI, press FIRE 1, and confirm `Cue 1 Exec 4.3` runs for 3 seconds before `Off Exec 4.3`. Re-arm and repeat FIRE 2 for cue 2. Confirm each fire disarms immediately.
 
 ## Failure-mode test
 

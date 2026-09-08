@@ -123,7 +123,7 @@ All venue-specific values live here. **No hardcoded values in code.**
 | `cueStack`       | Page/exec of the single cue stack the panel drives                          |
 | `colourControls.*` | Beam/Strobe colour-picker cue mappings and bottom palette controls |
 | `fixtureMaintenance` | Maintenance-tab rig layout plus lamp/reset/disable cue mappings       |
-| `specialEffects` | Lighting-tab Confetti and CO2 arm/fire controls plus cue mappings      |
+| `specialEffects` | Confetti and CO2 arm/fire controls, cue mappings, and timed releases   |
 | `streamDeck.companion` | Bitfocus Companion bridge host plus Stream Deck button locations |
 | `cueBanks.*`     | Lighting cue-library buttons; `cue: null` means unassigned and will not dispatch |
 | `executors.haze` | Fader executor for haze level                                               |
@@ -143,17 +143,9 @@ Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value.
 
 ### Special effects
 
-The Lighting tab includes local arm controls for Confetti and CO2. Fire actions stay disabled until `specialEffects.configured` is `true`, `specialEffects.cueStack.page` and `exec` are finite numbers, and the individual fire action has a finite `cue`.
+Special-effects controls remain hidden from the Lighting tab, but the Stream Deck Confetti controls are configured. ARM CONFETTI enables exactly one fire action. FIRE 1 runs the inside confetti cue (`Cue 1 Exec 4.3`) and FIRE 2 runs the outside confetti cue (`Cue 2 Exec 4.3`). Either action disarms immediately and automatically sends `Off Exec 4.3` after 3 seconds. A dashboard restart or MA2 reconnect also sends the safety off command so the executor cannot remain active.
 
-To activate special effects, provide exact grandMA2 cue assignments for:
-
-- `specialEffects.cueStack.page`
-- `specialEffects.cueStack.exec`
-- `specialEffects.groups[confetti].actions[fire1].cue`
-- `specialEffects.groups[confetti].actions[fire2].cue`
-- `specialEffects.groups[co2].actions[fire].cue`
-
-Do not enable these cues until the physical effect routing has been verified against the final grandMA2 show file.
+CO2 remains unconfigured and cannot fire. Do not assign its cue until the physical effect routing has been verified against the final grandMA2 show file.
 
 ### Stream Deck / Companion bridge
 
@@ -175,11 +167,11 @@ The current mapping watches:
 | Flashes - Blue | `1 / 1 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.108` |
 | Confetti - Arm | `1 / 1 / 6` | Dashboard arm toggle | Local panel state |
 | CO2 - Arm | `1 / 1 / 7` | Dashboard arm toggle | Local panel state |
-| Confetti - Fire 1 | `1 / 2 / 6` | Fire-key visual feedback | Follows Confetti arm state |
+| Confetti - Fire 1 | `1 / 2 / 6` | Timed inside confetti fire | `Cue 1 Exec 4.3`, then Off after 3s |
 | CO2 - Fire | `1 / 2 / 7` | Fire-key visual feedback | Follows CO2 arm state |
-| Confetti - Fire 2 | `1 / 3 / 6` | Fire-key visual feedback | Follows Confetti arm state |
+| Confetti - Fire 2 | `1 / 3 / 6` | Timed outside confetti fire | `Cue 2 Exec 4.3`, then Off after 3s |
 
-Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the same local arm state shown on the Lighting dashboard, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. Fire buttons grey out when their effect group is disarmed and switch to the armed warning style when armed.
+Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences` cue on press and send `Off Exec` for that executor on release. Confetti and CO2 arm buttons toggle the server's local arm state, and the server pushes active/inactive colours plus `ARM`/`ARMED` text back to those Companion buttons. Confetti FIRE 1 and FIRE 2 are ignored while disarmed, show `FIRING` during their three-second output, and return to the disarmed style when the timed release completes.
 
 `pollMs` and `confirmPolls` control bridge polling and active-state filtering. Momentary sequence controls execute every distinct Companion press event without a cooldown, allowing rapid repeated taps. Per-button `cooldownMs` remains available for latching controls such as Clear and effect-arm buttons.
 

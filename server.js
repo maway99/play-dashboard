@@ -23,6 +23,7 @@ if (companionUrlOverride && config.streamDeck?.companion) {
 
 const PORT = process.env.PORT || config.server?.port || 3000;
 const startedAt = Date.now();
+const specialEffectTimers = new Map();
 
 // ---------- Server state ("track what we sent") ----------
 const state = {
@@ -61,6 +62,7 @@ const state = {
 };
 
 function resetLightingNeutral() {
+  deactivateAllSpecialEffects({ sendOff: false, shouldBroadcast: false });
   state.haze = 0;
   state.endOfNightActive = false;
   state.activeCue = null;
@@ -191,6 +193,9 @@ class Ma2Telnet {
         state.ma2 = 'connected';
         state.ma2DisconnectedAt = null;
         console.log('[MA2] Logged in as', config.ma2.username);
+        // A special-effect executor must never be left active after the
+        // dashboard process or MA2 telnet connection has restarted.
+        sendConfiguredSpecialEffectSafetyOffs();
         // Immediate state sync on connection (includes haze fader value)
         setTimeout(() => pollMa2StateOnce(), 500);
         startMa2Polling(); // Start periodic polling for active cue
@@ -778,7 +783,54 @@ function findSpecialEffectCue(groupId, actionId) {
   const action = group?.actions?.find(a => a.id === actionId);
   if (!validCueNumber(action?.cue)) return null;
 
-  return { page, exec, cue: action.cue };
+  const durationMs = Math.max(1, Number(action.durationMs) || 3000);
+  return { page, exec, cue: action.cue, durationMs };
+}
+
+function configuredSpecialEffectExecutors() {
+  const effects = config.specialEffects;
+  if (!effects?.configured) return [];
+
+  const page = effects.cueStack?.page;
+  const exec = effects.cueStack?.exec;
+  if (!validCueNumber(page) || !validCueNumber(exec)) return [];
+
+  const hasConfiguredAction = effects.groups?.some(group =>
+    group.actions?.some(action => validCueNumber(action.cue))
+  );
+  return hasConfiguredAction ? [{ page, exec }] : [];
+}
+
+function sendConfiguredSpecialEffectSafetyOffs() {
+  for (const assignment of configuredSpecialEffectExecutors()) {
+    ma2.send(`Off Exec ${assignment.page}.${assignment.exec}`);
+  }
+}
+
+function deactivateSpecialEffect(groupId, { sendOff = true, shouldBroadcast = true } = {}) {
+  const active = specialEffectTimers.get(groupId);
+  if (active) {
+    clearTimeout(active.timer);
+    specialEffectTimers.delete(groupId);
+    if (sendOff) ma2.send(`Off Exec ${active.page}.${active.exec}`);
+  }
+
+  const groupState = state.specialEffects[groupId];
+  if (groupState) {
+    for (const actionId of Object.keys(groupState.fired)) groupState.fired[actionId] = false;
+  }
+
+  if (shouldBroadcast) {
+    broadcastState();
+    scheduleCompanionArmFeedbackSync();
+  }
+  return !!active;
+}
+
+function deactivateAllSpecialEffects(options = {}) {
+  for (const groupId of [...specialEffectTimers.keys()]) {
+    deactivateSpecialEffect(groupId, options);
+  }
 }
 
 function setSpecialEffectArm(groupId, armed) {
@@ -791,6 +843,7 @@ function setSpecialEffectArm(groupId, armed) {
 function clearSpecialEffect(groupId) {
   const groupState = state.specialEffects[groupId];
   if (!groupState) return;
+  deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: false });
   groupState.armed = false;
   for (const actionId of Object.keys(groupState.fired)) groupState.fired[actionId] = false;
   broadcastState();
@@ -807,14 +860,33 @@ function fireSpecialEffect(groupId, actionId) {
   const assignment = findSpecialEffectCue(groupId, actionId);
   if (!assignment) {
     console.warn('[SpecialEffects] Fire ignored: missing cue mapping', { groupId, actionId });
-    return;
+    return null;
   }
 
+  // Only one timed output may own a group's executor. Re-firing after a new
+  // arm cycle cancels the previous timeout before starting the next cue.
+  deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: false });
   ma2.send(`Goto Cue ${assignment.cue} Exec ${assignment.page}.${assignment.exec} Fade 0`);
+  for (const id of Object.keys(groupState.fired)) groupState.fired[id] = false;
   groupState.fired[actionId] = true;
   groupState.armed = false;
+
+  const timer = setTimeout(() => {
+    const active = specialEffectTimers.get(groupId);
+    if (!active || active.timer !== timer) return;
+    deactivateSpecialEffect(groupId, { sendOff: true, shouldBroadcast: true });
+    console.log('[SpecialEffects] Timed effect released', {
+      groupId,
+      actionId,
+      executor: `${assignment.page}.${assignment.exec}`,
+      durationMs: assignment.durationMs
+    });
+  }, assignment.durationMs);
+  specialEffectTimers.set(groupId, { timer, ...assignment, actionId });
+
   broadcastState();
   scheduleCompanionArmFeedbackSync();
+  return assignment;
 }
 
 // ---------- Bitfocus Companion Stream Deck bridge ----------
@@ -932,6 +1004,21 @@ function handleCompanionButtonPress(id, button) {
     }
     setSpecialEffectArm(button.group, !groupState.armed);
     markCompanionAction({ id, type: button.type, group: button.group, armed: state.specialEffects[button.group].armed });
+    return;
+  }
+
+  if (button.type === 'specialEffectFire') {
+    const assignment = fireSpecialEffect(button.group, button.action);
+    if (!assignment) return;
+    markCompanionAction({
+      id,
+      type: button.type,
+      group: button.group,
+      action: button.action,
+      cue: assignment.cue,
+      executor: `${assignment.page}.${assignment.exec}`,
+      durationMs: assignment.durationMs
+    });
   }
 }
 
@@ -1015,20 +1102,25 @@ async function pollCompanionButtons() {
 function specialEffectFeedbackButtonEntries() {
   return configuredCompanionButtons().filter(([, button]) =>
     button.type === 'specialEffectArm' ||
+    button.type === 'specialEffectFire' ||
     button.type === 'specialEffectFireFeedback'
   );
 }
 
 async function applyCompanionSpecialEffectFeedback(button, armed) {
   const feedbackConfig = companionConfig();
-  const style = button.type === 'specialEffectFireFeedback'
-    ? (armed ? feedbackConfig.fireFeedback?.armed : feedbackConfig.fireFeedback?.disarmed)
+  const isFireButton = button.type === 'specialEffectFire' || button.type === 'specialEffectFireFeedback';
+  const firing = isFireButton && !!state.specialEffects[button.group]?.fired?.[button.action];
+  const style = isFireButton
+    ? (firing
+        ? feedbackConfig.fireFeedback?.firing
+        : (armed ? feedbackConfig.fireFeedback?.armed : feedbackConfig.fireFeedback?.disarmed))
     : (armed ? feedbackConfig.armFeedback?.active : feedbackConfig.armFeedback?.inactive);
   if (!style) return;
 
   const label = button.feedbackLabel ?? button.label?.replace(/\s+arm$/i, '') ?? button.group;
-  const text = button.type === 'specialEffectFireFeedback'
-    ? String(label).toUpperCase()
+  const text = isFireButton
+    ? (firing ? 'FIRING' : String(label).toUpperCase())
     : (armed ? 'ARMED' : 'ARM');
 
   if (button.labelVariable) {
@@ -1174,6 +1266,27 @@ app.post('/api/actions/special-effect-arm/:group/:mode?', (req, res) => {
   return res.json({ ok: true, group, armed: state.specialEffects[group].armed });
 });
 
+app.post('/api/actions/special-effect-fire/:group/:action', (req, res) => {
+  const assignment = fireSpecialEffect(req.params.group, req.params.action);
+  if (!assignment) {
+    return res.status(409).json({
+      ok: false,
+      error: 'Effect is not armed or its cue mapping is incomplete'
+    });
+  }
+
+  return res.json({
+    ok: true,
+    group: req.params.group,
+    action: req.params.action,
+    page: assignment.page,
+    exec: assignment.exec,
+    cue: assignment.cue,
+    durationMs: assignment.durationMs,
+    ma2: state.ma2
+  });
+});
+
 app.get('/api/stream-deck/status', (_req, res) => {
   res.json({
     ok: true,
@@ -1284,6 +1397,7 @@ function shutdown() {
   console.log('\n[Server] Shutting down...');
   if (companionState.pollTimer) clearInterval(companionState.pollTimer);
   if (companionState.feedbackTimer) clearTimeout(companionState.feedbackTimer);
+  deactivateAllSpecialEffects({ sendOff: true, shouldBroadcast: false });
   if (ma2.reconnectTimer) {
     clearTimeout(ma2.reconnectTimer);
     ma2.reconnectTimer = null;

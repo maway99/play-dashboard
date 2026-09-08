@@ -36,6 +36,7 @@ The Art-Net node at `2.0.0.1` was reachable from both the lighting PC and mainte
 - White strobe: executor `1.101`, cue `1`
 - White flash: executor `1.102`, cue `1`
 - Lamp control: executor `4.6`, sequence `12`; cue `1` lamps on, cue `2` lamps off
+- Confetti: executor `4.3`; cue `1` inside, cue `2` outside; each fire runs for `3 seconds` then sends Off
 - Main cues: cues `1–5`
 - Strobe Tip: cue `6`
 - End Of Night: cue `7`
@@ -43,9 +44,11 @@ The Art-Net node at `2.0.0.1` was reachable from both the lighting PC and mainte
 - Med Rnd Chase: cue `9`
 - Fast Rnd Chase: cue `10`
 
-The dashboard sections are Slow Cues, Main Cues, Strobes, Buildups, and Laser Cues, with Beam/Strobe colour selection and palettes at the bottom. Placeholder cues are hidden from the operator UI until they receive real MA2 cue numbers. Special Effects is intentionally hidden/unconfigured for now. Lamp controls live in the left sidebar.
+The dashboard sections are Slow Cues, Main Cues, Strobes, Buildups, and Laser Cues, with Beam/Strobe colour selection and palettes at the bottom. Placeholder cues are hidden from the operator UI until they receive real MA2 cue numbers. Special Effects remains hidden from the Lighting page. Confetti is controlled from Companion: ARM CONFETTI enables one shot, FIRE 1 selects inside and FIRE 2 selects outside, then the dashboard automatically releases executor `4.3` after 3 seconds. CO2 remains unconfigured. Lamp controls live in the left sidebar.
 
 Momentary Stream Deck actions must fire on every press and release cleanly. Do not add client-side debounce to flash actions. Strobe controls must use explicit press/on and release/off behavior rather than toggle behavior, which previously caused alternating or apparently random activation.
+
+The Companion confetti bridge uses custom-variable counters `pgro_sd_confetti_arm_press`, `pgro_sd_confetti_fire1_press`, and `pgro_sd_confetti_fire2_press`. On Companion page 1, ARM is row 1 / column 6, FIRE 1 is row 2 / column 6, and FIRE 2 is row 3 / column 6 (zero-based API coordinates). The server primes current counter values on startup so an old press cannot replay after a restart.
 
 ## Startup and kiosk
 

@@ -638,12 +638,12 @@
     ]
   },
   "specialEffects": {
-    "configured": false,
-    "showOnLightingPage": true,
+    "configured": true,
+    "showOnLightingPage": false,
     "unconfiguredMessage": "Special effects cue mapping is not configured. Add exact grandMA2 cue assignments before enabling Confetti or CO2 fire actions.",
     "cueStack": {
-      "page": null,
-      "exec": null
+      "page": 4,
+      "exec": 3
     },
     "groups": [
       {
@@ -654,13 +654,15 @@
         "actions": [
           {
             "id": "fire1",
-            "label": "Fire 1",
-            "cue": null
+            "label": "Inside",
+            "cue": 1,
+            "durationMs": 3000
           },
           {
             "id": "fire2",
-            "label": "Fire 2",
-            "cue": null
+            "label": "Outside",
+            "cue": 2,
+            "durationMs": 3000
           }
         ]
       },
@@ -822,18 +824,22 @@
           "page": 1,
           "row": 2,
           "column": 6,
-          "type": "specialEffectFireFeedback",
+          "type": "specialEffectFire",
           "group": "confetti",
-          "feedbackLabel": "Fire 1"
+          "action": "fire1",
+          "feedbackLabel": "Fire 1",
+          "pressVariable": "pgro_sd_confetti_fire1_press"
         },
         "confettiFire2": {
           "label": "Confetti fire 2",
           "page": 1,
           "row": 3,
           "column": 6,
-          "type": "specialEffectFireFeedback",
+          "type": "specialEffectFire",
           "group": "confetti",
-          "feedbackLabel": "Fire 2"
+          "action": "fire2",
+          "feedbackLabel": "Fire 2",
+          "pressVariable": "pgro_sd_confetti_fire2_press"
         },
         "co2Fire": {
           "label": "CO2 fire",
@@ -858,6 +864,11 @@
         }
       },
       "fireFeedback": {
+        "firing": {
+          "bgcolor": "#ff3b00",
+          "color": "#ffffff",
+          "size": "9"
+        },
         "armed": {
           "bgcolor": "#4a1515",
           "color": "#ffffff",
