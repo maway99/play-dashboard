@@ -11,6 +11,7 @@ This is the durable operational context for future dashboard work. Keep it updat
 | Lighting PC / Windows account | `Room 1 Lighting PC` |
 | Lighting PC wired address | `2.0.0.10` |
 | Lighting network mask | `255.0.0.0` (`/8`) |
+| Art-Net node | `2.0.0.1` |
 | Maintenance Mac wired address | `2.0.0.50` |
 | Operator dashboard | `http://2.0.0.10:3000` |
 | grandMA2 onPC | `3.9.61.3` |
@@ -21,6 +22,8 @@ This is the durable operational context for future dashboard work. Keep it updat
 grandMA2 onPC, Bitfocus Companion, Carabiner, the dashboard server, and the kiosk browser all run on the lighting PC. The production process overrides the development addresses in `config.json` so MA2 and Companion use loopback. Do not route same-PC control traffic through `2.0.0.10`.
 
 The lighting PC can share the lighting-network switch with the MA2/Art-Net node. Preserve `2.0.0.10 / 255.0.0.0`, avoid duplicate addresses, and do not add a gateway to the isolated lighting adapter unless the venue network design changes.
+
+The Art-Net node at `2.0.0.1` was reachable from both the lighting PC and maintenance Mac on 8 September 2026. The lighting PC resolved it on the Ethernet adapter as MAC `02-2B-F5-51-59-92`.
 
 ## Canonical control mapping
 
