@@ -137,7 +137,7 @@ The checked-in `config.json` uses `2.0.0.10` for development from the Mac. The W
 
 ### Cue library
 
-The Lighting tab keeps separate Slow, Buildup, Strobe, Main, and Laser cue sections while hiding unassigned cue buttons. The 1920×1080 kiosk layout places Slow, Buildup, and Strobe across the top row, with Main and Laser sharing the bottom row. Beam and Strobe colour controls plus palette presets sit in the bottom band.
+The Lighting tab keeps separate Slow, Build Up, Strobing, Main, and Laser cue sections while hiding unassigned cue buttons. The 1920×1080 kiosk layout places Slow, Build Up, and Strobing across the top row, with Main and Laser sharing the bottom row. Beam and Strobe colour controls plus palette presets sit in the bottom band.
 
 Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. The Beam colour row uses executor 1.1 and the Strobe colour row uses executor 1.2. Main movement cues remain on executor 4.1 and reapply the currently selected Beam and Strobe colours after firing.
 

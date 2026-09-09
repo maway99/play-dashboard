@@ -1045,7 +1045,7 @@
       ]
     },
     "strobeCues": {
-      "label": "Strobes",
+      "label": "Strobing",
       "cues": [
         {
           "id": "strobe-cue-06",
@@ -1060,7 +1060,7 @@
       ]
     },
     "buildups": {
-      "label": "Buildups",
+      "label": "Build Up",
       "cues": [
         {
           "id": "buildup-cue-09",
