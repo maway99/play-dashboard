@@ -3,12 +3,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 const AUTO_INTERVAL_MS = 15000;
 const VISIBLE_CUES_PER_BANK = 15;
 const AUTO_CUE_BANKS = ['slowCues', 'mainCues', 'strobeCues'];
-const CUE_BANK_LAYOUT = [
-  { key: 'slowCues', gridColumn: '1 / span 2', gridRow: '1', buttonColumns: 2 },
-  { key: 'buildups', gridColumn: '3 / span 2', gridRow: '1', buttonColumns: 3 },
-  { key: 'strobeCues', gridColumn: '5 / span 2', gridRow: '1', buttonColumns: 2 },
-  { key: 'mainCues', gridColumn: '1 / span 3', gridRow: '2', buttonColumns: 4 },
-  { key: 'laserCues', gridColumn: '4 / span 3', gridRow: '2', buttonColumns: 5 }
+const CUE_BANK_ROWS = [
+  [
+    { key: 'slowCues', buttonColumns: 2 },
+    { key: 'buildups', buttonColumns: 3 },
+    { key: 'strobeCues', buttonColumns: 2 }
+  ],
+  [
+    { key: 'mainCues', buttonColumns: 4 },
+    { key: 'laserCues', buttonColumns: 5 }
+  ]
 ];
 const MAIN_COLOUR_FIXTURE_IDS = ['beams', 'strobes'];
 
@@ -25,12 +29,47 @@ function pickRandom(cues, exclude) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function getAutoPalettes(config) {
+  const nonWhiteColourIds = new Set(
+    (config?.colours ?? [])
+      .filter((colour) => colour.id !== 'open' && !/white|filter/i.test(colour.label ?? ''))
+      .map((colour) => colour.id)
+  );
+
+  return (config?.palettes ?? []).filter((palette) =>
+    !palette.placeholder &&
+    MAIN_COLOUR_FIXTURE_IDS.every((fixtureId) => nonWhiteColourIds.has(palette.colours?.[fixtureId]))
+  );
+}
+
+function pickRandomPalette(palettes, excludeId) {
+  const pool = palettes.length > 1 && excludeId
+    ? palettes.filter((palette) => palette.id !== excludeId)
+    : palettes;
+  return pool[Math.floor(Math.random() * pool.length)] ?? null;
+}
+
+function fixtureColoursForPalette(palette) {
+  return Object.fromEntries(
+    MAIN_COLOUR_FIXTURE_IDS
+      .filter((fixtureId) => typeof palette?.colours?.[fixtureId] === 'string')
+      .map((fixtureId) => [fixtureId, palette.colours[fixtureId]])
+  );
+}
+
+function matchingPaletteId(palettes, fixtureColours) {
+  return palettes.find((palette) =>
+    MAIN_COLOUR_FIXTURE_IDS.every((fixtureId) => palette.colours?.[fixtureId] === fixtureColours?.[fixtureId])
+  )?.id ?? null;
+}
+
 export default function Lighting({ state, send }) {
   const [autoBank, setAutoBank] = useState(null);
   const [autoNextCue, setAutoNextCue] = useState(null);
   const [autoNextAt, setAutoNextAt] = useState(null);
   const autoTimerRef = useRef(null);
-  const autoRef = useRef({ nextCue: null, cues: [], bankKey: null });
+  const autoRef = useRef({ nextCue: null, cues: [], bankKey: null, lastPaletteId: null });
+  const autoPalettesRef = useRef([]);
   const mainColoursRef = useRef({});
 
   mainColoursRef.current = Object.fromEntries(MAIN_COLOUR_FIXTURE_IDS.map((fixtureId) => [
@@ -39,6 +78,7 @@ export default function Lighting({ state, send }) {
       ?? state.config.defaults?.fixtureColours?.[fixtureId]
       ?? 'blue'
   ]));
+  autoPalettesRef.current = getAutoPalettes(state.config.colourControls);
 
   const sendCue = useCallback((cueNumber, bankKey, colours) => {
     send({
@@ -55,23 +95,38 @@ export default function Lighting({ state, send }) {
     setAutoNextAt(null);
   }, []);
 
+  const sendAutoCue = useCallback((cueNumber, bankKey, previousPaletteId) => {
+    const palette = pickRandomPalette(autoPalettesRef.current, previousPaletteId);
+    const colours = fixtureColoursForPalette(palette);
+
+    // Main cues accept an explicit colour layer. Other cue banks receive the
+    // same palette immediately after the cue so their programmed colour cannot
+    // overwrite the newly selected automatic look.
+    sendCue(cueNumber, bankKey, colours);
+    if (palette && bankKey !== 'mainCues') {
+      send({ type: 'fixturePalette', palette: palette.id, fixtures: MAIN_COLOUR_FIXTURE_IDS });
+    }
+    return palette?.id ?? null;
+  }, [send, sendCue]);
+
   const tick = useCallback(() => {
-    const { nextCue, cues, bankKey } = autoRef.current;
+    const { nextCue, cues, bankKey, lastPaletteId } = autoRef.current;
     if (!Number.isFinite(nextCue)) {
       stopAuto();
       return;
     }
-    sendCue(nextCue, bankKey);
+    const nextPaletteId = sendAutoCue(nextCue, bankKey, lastPaletteId);
     const newNext = pickRandom(cues, nextCue);
     if (!newNext) {
       stopAuto();
       return;
     }
     autoRef.current.nextCue = newNext.cue;
+    autoRef.current.lastPaletteId = nextPaletteId;
     setAutoNextCue(newNext.cue);
     setAutoNextAt(Date.now() + AUTO_INTERVAL_MS);
     autoTimerRef.current = setTimeout(tick, AUTO_INTERVAL_MS);
-  }, [sendCue, stopAuto]);
+  }, [sendAutoCue, stopAuto]);
 
   const toggleAuto = useCallback((bankKey, cues) => {
     if (autoBank === bankKey) { stopAuto(); return; }
@@ -79,14 +134,20 @@ export default function Lighting({ state, send }) {
     if (assignedCues.length === 0) return;
     clearTimeout(autoTimerRef.current);
     const first = pickRandom(assignedCues, null);
-    sendCue(first.cue, bankKey);
+    const currentPaletteId = matchingPaletteId(autoPalettesRef.current, mainColoursRef.current);
+    const firstPaletteId = sendAutoCue(first.cue, bankKey, currentPaletteId);
     const next = pickRandom(assignedCues, first.cue);
-    autoRef.current = { nextCue: next?.cue ?? null, cues: assignedCues, bankKey };
+    autoRef.current = {
+      nextCue: next?.cue ?? null,
+      cues: assignedCues,
+      bankKey,
+      lastPaletteId: firstPaletteId
+    };
     setAutoBank(bankKey);
     setAutoNextCue(next?.cue ?? null);
     setAutoNextAt(Date.now() + AUTO_INTERVAL_MS);
     autoTimerRef.current = setTimeout(tick, AUTO_INTERVAL_MS);
-  }, [autoBank, sendCue, stopAuto, tick]);
+  }, [autoBank, sendAutoCue, stopAuto, tick]);
 
   const handleSelectCue = useCallback((cue, bankKey) => {
     if (!isAssignedCue(cue)) return;
@@ -485,23 +546,26 @@ function CueBanks({
 }) {
   return (
     <div
-      className="h-full grid gap-4 min-h-0 min-w-0"
-      style={{
-        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-        gridTemplateRows: 'repeat(2, minmax(0, 1fr))'
-      }}
+      className="h-full grid grid-rows-2 gap-4 min-h-0 min-w-0"
     >
-      {CUE_BANK_LAYOUT.map(({ key, gridColumn, gridRow, buttonColumns }) => (
-        <div key={key} className="min-h-0 min-w-0" style={{ gridColumn, gridRow }}>
-          <BankBlock
-            bankKey={key}
-            bank={banks[key]}
-            activeCue={activeCue}
-            onSelect={(cue) => onSelect(cue, key)}
-            isAutoRunning={autoBank === key}
-            autoNextCue={autoBank === key ? autoNextCue : null}
-            buttonColumns={buttonColumns}
-          />
+      {CUE_BANK_ROWS.map((row, rowIndex) => (
+        <div
+          key={`cue-bank-row-${rowIndex}`}
+          className="grid gap-4 min-h-0 min-w-0"
+          style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
+        >
+          {row.map(({ key, buttonColumns }) => (
+            <BankBlock
+              key={key}
+              bankKey={key}
+              bank={banks[key]}
+              activeCue={activeCue}
+              onSelect={(cue) => onSelect(cue, key)}
+              isAutoRunning={autoBank === key}
+              autoNextCue={autoBank === key ? autoNextCue : null}
+              buttonColumns={buttonColumns}
+            />
+          ))}
         </div>
       ))}
     </div>

@@ -145,6 +145,8 @@ The current Laser section uses cues 11–14, 16–18, and 20–22 on executor 4.
 
 The additional cue mappings are Slow cues 23, 24, 26, and 27; Main cues 28 and 32; and Buildup cues 29–31. Cue 25 is intentionally absent from the photographed MA2 cue list.
 
+Starting an Auto Cycle and every subsequent automatic cue change also selects a different random Beam/Strobe palette. Auto Cycle excludes palettes containing Open, 3200K, 5600K, or any colour labelled white/filter; with the current configuration it rotates among Pink Blue, Deep Blue, Fire, Toxic, and Candy without immediately repeating the previous palette.
+
 ### Special effects
 
 Special-effects controls remain hidden from the Lighting tab, but the Stream Deck Confetti and CO2 controls are configured. ARM CONFETTI enables exactly one fire action. FIRE 1 runs the inside confetti cue (`Cue 1 Exec 4.3`) and FIRE 2 runs the outside confetti cue (`Cue 2 Exec 4.3`). Either action disarms immediately and automatically sends `Off Exec 4.3` after 3 seconds.

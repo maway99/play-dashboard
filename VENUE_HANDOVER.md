@@ -124,6 +124,8 @@ The Laser dashboard bank currently maps executor 4.1 cues 11–14, 16–18, and 
 
 The dashboard also maps executor 4.1 cues 23, 24, 26, and 27 into Slow; cues 28 and 32 into Main; and cues 29–31 into Build Up. The cue-bank kiosk layout is Slow / Build Up / Strobing across the top and Main / Laser across the bottom.
 
+Auto Cycle chooses a new non-white Beam/Strobe palette both when started and on every 15-second cue transition. The current eligible palettes are Pink Blue, Deep Blue, Fire, Toxic, and Candy; consecutive repeats are suppressed.
+
 ## Last verified production state
 
 On 8 September 2026:
