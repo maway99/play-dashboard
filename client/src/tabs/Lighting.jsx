@@ -546,7 +546,7 @@ function CueBanks({
 }) {
   return (
     <div
-      className="h-full grid grid-rows-2 gap-4 min-h-0 min-w-0"
+      className="h-full grid grid-cols-1 grid-rows-2 gap-4 min-h-0 min-w-0"
     >
       {CUE_BANK_ROWS.map((row, rowIndex) => (
         <div
