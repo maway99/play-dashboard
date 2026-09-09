@@ -893,6 +893,26 @@
       "label": "Slow Cues",
       "cues": [
         {
+          "id": "slow-cue-23",
+          "label": "Center Circle Static",
+          "cue": 23
+        },
+        {
+          "id": "slow-cue-24",
+          "label": "Outer Fade",
+          "cue": 24
+        },
+        {
+          "id": "slow-cue-26",
+          "label": "Slow Rise",
+          "cue": 26
+        },
+        {
+          "id": "slow-cue-27",
+          "label": "Strobe Spin Only",
+          "cue": 27
+        },
+        {
           "id": "slow-01",
           "label": "Slow drift",
           "cue": null,
@@ -1011,6 +1031,16 @@
           "id": "main-05",
           "label": "Full-Room Sweep",
           "cue": 5
+        },
+        {
+          "id": "main-cue-28",
+          "label": "Beams / Strobe Alt BPM",
+          "cue": 28
+        },
+        {
+          "id": "main-cue-32",
+          "label": "Beam / Strobe Circle Alt",
+          "cue": 32
         }
       ]
     },
@@ -1041,6 +1071,21 @@
           "id": "buildup-cue-10",
           "label": "Fast Rnd Chase",
           "cue": 10
+        },
+        {
+          "id": "buildup-cue-29",
+          "label": "Rnd Beams Center",
+          "cue": 29
+        },
+        {
+          "id": "buildup-cue-30",
+          "label": "Strobe Col Rnd Med",
+          "cue": 30
+        },
+        {
+          "id": "buildup-cue-31",
+          "label": "Strobe Col Rnd Fast",
+          "cue": 31
         },
         {
           "id": "buildup-01",

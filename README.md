@@ -137,11 +137,13 @@ The checked-in `config.json` uses `2.0.0.10` for development from the Mac. The W
 
 ### Cue library
 
-The Lighting tab keeps separate Slow, Strobe, Main, Buildup, and Laser cue sections while hiding unassigned cue buttons. Beam and Strobe colour controls plus palette presets sit in the bottom band.
+The Lighting tab keeps separate Slow, Buildup, Strobe, Main, and Laser cue sections while hiding unassigned cue buttons. The 1920×1080 kiosk layout places Slow, Buildup, and Strobe across the top row, with Main and Laser sharing the bottom row. Beam and Strobe colour controls plus palette presets sit in the bottom band.
 
 Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. The Beam colour row uses executor 1.1 and the Strobe colour row uses executor 1.2. Main movement cues remain on executor 4.1 and reapply the currently selected Beam and Strobe colours after firing.
 
 The current Laser section uses cues 11–14, 16–18, and 20–22 on executor 4.1: Blue Waves, White Waves, Blue Circle, White Dot Wave, Blue Dot Wave, White Dot Spiral, Red Dot Wave, Green Line Wave, Blue Dot Wave, and Green Circle. The two Blue Dot Wave entries are separate MA2 cues (16 and 21) and are identified by their displayed cue numbers.
+
+The additional cue mappings are Slow cues 23, 24, 26, and 27; Main cues 28 and 32; and Buildup cues 29–31. Cue 25 is intentionally absent from the photographed MA2 cue list.
 
 ### Special effects
 

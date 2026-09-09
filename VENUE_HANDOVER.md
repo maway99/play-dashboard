@@ -122,6 +122,8 @@ Before changing production:
 
 The Laser dashboard bank currently maps executor 4.1 cues 11–14, 16–18, and 20–22. Cue numbers 15 and 19 are intentionally absent from the photographed MA2 cue list; cues 16 and 21 are both labelled `Blue Dot Wave` in the show file.
 
+The dashboard also maps executor 4.1 cues 23, 24, 26, and 27 into Slow; cues 28 and 32 into Main; and cues 29–31 into Buildup. The cue-bank kiosk layout is Slow / Buildup / Strobe across the top and Main / Laser across the bottom.
+
 ## Last verified production state
 
 On 8 September 2026:

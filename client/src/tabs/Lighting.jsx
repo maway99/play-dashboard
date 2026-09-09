@@ -3,7 +3,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 const AUTO_INTERVAL_MS = 15000;
 const VISIBLE_CUES_PER_BANK = 15;
 const AUTO_CUE_BANKS = ['slowCues', 'mainCues', 'strobeCues'];
-const PRIMARY_CUE_BANKS = [['slowCues', 'strobeCues'], 'mainCues', 'buildups', 'laserCues'];
+const CUE_BANK_LAYOUT = [
+  { key: 'slowCues', gridColumn: '1 / span 2', gridRow: '1', buttonColumns: 2 },
+  { key: 'buildups', gridColumn: '3 / span 2', gridRow: '1', buttonColumns: 3 },
+  { key: 'strobeCues', gridColumn: '5 / span 2', gridRow: '1', buttonColumns: 2 },
+  { key: 'mainCues', gridColumn: '1 / span 3', gridRow: '2', buttonColumns: 4 },
+  { key: 'laserCues', gridColumn: '4 / span 3', gridRow: '2', buttonColumns: 5 }
+];
 const MAIN_COLOUR_FIXTURE_IDS = ['beams', 'strobes'];
 
 // Display labels are Title Case regardless of how they're typed in config.
@@ -479,41 +485,25 @@ function CueBanks({
 }) {
   return (
     <div
-      className="h-full grid grid-cols-2 gap-4 min-h-0 min-w-0"
-      style={{ gridAutoRows: 'minmax(0, 1fr)' }}
+      className="h-full grid gap-4 min-h-0 min-w-0"
+      style={{
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+        gridTemplateRows: 'repeat(2, minmax(0, 1fr))'
+      }}
     >
-      {PRIMARY_CUE_BANKS.map((key) => {
-        if (Array.isArray(key)) {
-          return (
-            <div key={key.join('-')} className="grid grid-cols-2 gap-4 min-h-0 min-w-0">
-              {key.map((groupedKey) => (
-                <BankBlock
-                  key={groupedKey}
-                  bankKey={groupedKey}
-                  bank={banks[groupedKey]}
-                  activeCue={activeCue}
-                  onSelect={(cue) => onSelect(cue, groupedKey)}
-                  isAutoRunning={autoBank === groupedKey}
-                  autoNextCue={autoBank === groupedKey ? autoNextCue : null}
-                  buttonColumns={groupedKey === 'slowCues' ? 3 : 2}
-                />
-              ))}
-            </div>
-          );
-        }
-        return (
+      {CUE_BANK_LAYOUT.map(({ key, gridColumn, gridRow, buttonColumns }) => (
+        <div key={key} className="min-h-0 min-w-0" style={{ gridColumn, gridRow }}>
           <BankBlock
-            key={key}
             bankKey={key}
             bank={banks[key]}
             activeCue={activeCue}
             onSelect={(cue) => onSelect(cue, key)}
             isAutoRunning={autoBank === key}
             autoNextCue={autoBank === key ? autoNextCue : null}
-            buttonColumns={3}
+            buttonColumns={buttonColumns}
           />
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
