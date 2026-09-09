@@ -141,6 +141,8 @@ The Lighting tab keeps separate Slow, Strobe, Main, Buildup, and Laser cue secti
 
 Each cue entry has a stable `id`, an operator-facing `label`, and a `cue` value. Leave `cue` as `null` until the matching grandMA2 cue exists in the show file. The Beam colour row uses executor 1.1 and the Strobe colour row uses executor 1.2. Main movement cues remain on executor 4.1 and reapply the currently selected Beam and Strobe colours after firing.
 
+The current Laser section uses cues 11–14, 16–18, and 20–22 on executor 4.1: Blue Waves, White Waves, Blue Circle, White Dot Wave, Blue Dot Wave, White Dot Spiral, Red Dot Wave, Green Line Wave, Blue Dot Wave, and Green Circle. The two Blue Dot Wave entries are separate MA2 cues (16 and 21) and are identified by their displayed cue numbers.
+
 ### Special effects
 
 Special-effects controls remain hidden from the Lighting tab, but the Stream Deck Confetti and CO2 controls are configured. ARM CONFETTI enables exactly one fire action. FIRE 1 runs the inside confetti cue (`Cue 1 Exec 4.3`) and FIRE 2 runs the outside confetti cue (`Cue 2 Exec 4.3`). Either action disarms immediately and automatically sends `Off Exec 4.3` after 3 seconds.

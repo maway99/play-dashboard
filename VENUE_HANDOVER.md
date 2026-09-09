@@ -120,6 +120,8 @@ Before changing production:
 5. Run `verify-install.ps1` and check `http://2.0.0.10:3000/api/state`.
 6. Avoid restarting MA2 or Windows while the lighting system is in use.
 
+The Laser dashboard bank currently maps executor 4.1 cues 11–14, 16–18, and 20–22. Cue numbers 15 and 19 are intentionally absent from the photographed MA2 cue list; cues 16 and 21 are both labelled `Blue Dot Wave` in the show file.
+
 ## Last verified production state
 
 On 8 September 2026:

@@ -1138,94 +1138,54 @@
       "label": "Laser Cues",
       "cues": [
         {
-          "id": "laser-01",
-          "label": "Laser wave",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-11",
+          "label": "Blue Waves",
+          "cue": 11
         },
         {
-          "id": "laser-02",
-          "label": "Laser fan",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-12",
+          "label": "White Waves",
+          "cue": 12
         },
         {
-          "id": "laser-03",
-          "label": "Laser tunnel",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-13",
+          "label": "Blue Circle",
+          "cue": 13
         },
         {
-          "id": "laser-04",
-          "label": "Laser sweep",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-14",
+          "label": "White Dot Wave",
+          "cue": 14
         },
         {
-          "id": "laser-05",
-          "label": "Laser dots",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-16",
+          "label": "Blue Dot Wave",
+          "cue": 16
         },
         {
-          "id": "laser-06",
-          "label": "Laser cone",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-17",
+          "label": "White Dot Spiral",
+          "cue": 17
         },
         {
-          "id": "laser-07",
-          "label": "Laser pulse",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-18",
+          "label": "Red Dot Wave",
+          "cue": 18
         },
         {
-          "id": "laser-08",
-          "label": "Laser cross",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-20",
+          "label": "Green Line Wave",
+          "cue": 20
         },
         {
-          "id": "laser-09",
-          "label": "Laser scan",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-21",
+          "label": "Blue Dot Wave",
+          "cue": 21
         },
         {
-          "id": "laser-10",
-          "label": "Laser bounce",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "laser-11",
-          "label": "Laser net",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "laser-12",
-          "label": "Laser hit",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "laser-13",
-          "label": "Laser weave",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "laser-14",
-          "label": "Laser burst",
-          "cue": null,
-          "placeholder": true
-        },
-        {
-          "id": "laser-15",
-          "label": "Laser sky",
-          "cue": null,
-          "placeholder": true
+          "id": "laser-cue-22",
+          "label": "Green Circle",
+          "cue": 22
         }
       ]
     }
