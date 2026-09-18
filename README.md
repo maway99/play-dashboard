@@ -33,6 +33,10 @@ If Chrome does not open after reboot: run `start-panel.bat` manually and check t
 
 For an on-demand end-to-end check, run `powershell -ExecutionPolicy Bypass -File scripts\verify-install.ps1`. It verifies the lighting NIC, scheduled task, dashboard, local MA2 and Companion routing, Carabiner, and the dedicated Chrome kiosk process.
 
+The Link firewall exception allows inbound UDP only for `tools\Carabiner.exe`, only from `2.0.0.0/8`, and only on wired interfaces. Do not limit this rule to port 20808: discovery uses that port, but clock synchronisation also uses dynamically allocated UDP ports. The installer does not disable Windows Firewall. Carabiner's TCP control connection correctly stays on `127.0.0.1:17000`; Link peers communicate through the Ethernet adapter independently.
+
+If `/api/state` reports Carabiner connected but zero Link peers despite another Link app being enabled on the lighting network, check multicast reachability and the Carabiner firewall exception. A stale Carabiner network/socket state can also need a bridge-only restart: terminate only the verified `C:\play-dashboard\tools\Carabiner.exe` process, and the dashboard will respawn it after five seconds. Do not restart MA2, Companion, Windows, or the whole dashboard just to refresh Link. Confirm `link.peers > 0`, `link.source = link`, and `link.lastSentBpm` matches the live Link session afterwards. A green Carabiner connection by itself does not prove an external Link peer is connected.
+
 Prerequisites (install manually before running setup):
 
 - Node.js LTS (20.x or 22.x)

@@ -99,7 +99,9 @@ if not exist "%ROOT%\tools\Carabiner.exe" (
     echo     Carabiner.exe already installed
 )
 netsh advfirewall firewall delete rule name="Play Gloucester Ableton Link" >nul 2>&1
-netsh advfirewall firewall add rule name="Play Gloucester Ableton Link" dir=in action=allow program="%ROOT%\tools\Carabiner.exe" protocol=UDP localport=20808 profile=any enable=yes >nul
+REM Link uses multicast discovery AND dynamic unicast ports for clock synchronisation.
+REM Allow only Carabiner UDP from the wired lighting network; keep the firewall enabled.
+netsh advfirewall firewall add rule name="Play Gloucester Ableton Link" dir=in action=allow program="%ROOT%\tools\Carabiner.exe" protocol=UDP localport=any remoteip=2.0.0.0/8 interfacetype=lan profile=any enable=yes >nul
 if errorlevel 1 goto :fail
 netsh advfirewall firewall delete rule name="Play Dashboard Maintenance HTTP" >nul 2>&1
 netsh advfirewall firewall add rule name="Play Dashboard Maintenance HTTP" dir=in action=allow protocol=TCP localport=3000 remoteip=2.0.0.50 profile=any enable=yes >nul

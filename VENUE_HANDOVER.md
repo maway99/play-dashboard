@@ -105,6 +105,14 @@ The node identifies as an ADJ NET8 on firmware `V1.10`. All eight ports are conf
 
 ## Installation, updates, and recovery
 
+### 18 September 2026 Link recovery
+
+The dashboard was connected to Carabiner but reported zero peers and fell back to 125 BPM while Serato Link was enabled on the Mac. Serato's macOS Local Network permission was enabled and the Mac firewall was off. A passive Ethernet listener received Link multicast from the PC. Windows Packet Monitor then captured Serato discovery and clock packets reaching the PC; clock packets to the old Carabiner UDP port 54962 were dropped with receive-inspection / transport-endpoint / inspection reasons. Evidence is retained as `C:\play-dashboard\logs\link-diagnosis-20260918-231337.{etl,txt,pcapng}`; the capture was stopped and its temporary filter removed.
+
+The old `Play Gloucester Ableton Link` firewall exception allowed Carabiner UDP only on port 20808. It was corrected to allow dynamic UDP as well, restricted to `C:\play-dashboard\tools\Carabiner.exe`, source `2.0.0.0/8`, and wired interfaces. The original rule/profile details are preserved at `C:\play-dashboard\logs\link-firewall-before-20260918-231606.json`. Neither changing the rule alone nor temporarily disabling the Public firewall alone restored Link. Restarting only Carabiner (old PID 12616, new PID 9836) restored one external peer at 120 BPM, so stale bridge/network socket state was also involved; the exact underlying cause of that stale state is not yet proven. Public firewall was then re-enabled with the corrected rule and all 12 one-second checks retained the peer and Link tempo. Private firewall remained enabled; the pre-existing disabled Domain profile was unchanged. MA2 and Companion were not restarted, and the dashboard confirmed `SpecialMaster 3.1 At 120` was sent.
+
+`setup.bat` now installs the scoped all-UDP Link rule without disabling the firewall, preventing reinstalls from recreating the port-only exception. The two new installer/control-host regression checks bring the suite to 29 tests. Carabiner TCP control must remain `127.0.0.1:17000`: that is not the network discovery address. For future zero-peer failures, inspect the actual peer count and try a bridge-only restart after checking network and firewall evidence; do not blindly attribute every failure to the firewall. Restore the maintenance Mac to the operator's saved `2.0.0.30/16` after SSH work.
+
 - Production directory: `C:\play-dashboard`
 - Golden runtime config: `C:\play-dashboard\config.golden.json`
 - Offline recovery bundle: `C:\play-dashboard-offline-backup.zip`
