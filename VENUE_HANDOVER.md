@@ -1,6 +1,6 @@
 # Room 1 Lighting Dashboard — Venue Handover
 
-Last verified: **8 September 2026**
+Last verified: **18 September 2026**
 
 This is the durable operational context for future dashboard work. Keep it updated whenever the venue topology, cue mapping, startup process, or recovery package changes. Do not add passwords, private keys, or other secrets to this file.
 
@@ -38,7 +38,7 @@ The Art-Net node at `2.0.0.1` was reachable from both the lighting PC and mainte
 - Lamp control: executor `4.6`, sequence `12`; cue `1` lamps on, cue `2` lamps off
 - Confetti: executor `4.3`; cue `1` inside, cue `2` outside; each fire runs for `3 seconds` then sends Off
 - CO2: executor `4.4`, cue `1`; active only while the Stream Deck FIRE button is held
-- Main cues: cues `1–5`
+- Main cues: cues `1–5`, `28`, `32`
 - Strobe Tip: cue `6`
 - End Of Night: cue `7`
 - Strobe Spin: cue `8`
@@ -50,6 +50,8 @@ The dashboard sections are Slow Cues, Main Cues, Strobes, Buildups, and Laser Cu
 Momentary Stream Deck actions must fire on every press and release cleanly. Do not add client-side debounce to flash actions. Strobe controls must use explicit press/on and release/off behavior rather than toggle behavior, which previously caused alternating or apparently random activation.
 
 The Companion confetti bridge uses custom-variable counters `pgro_sd_confetti_arm_press`, `pgro_sd_confetti_fire1_press`, and `pgro_sd_confetti_fire2_press`. CO2 ARM uses `pgro_sd_co2_arm_press`; CO2 FIRE uses Companion's live held-button state so release cannot depend on a timer. On Companion page 1, Confetti ARM is row 1 / column 6, FIRE 1 is row 2 / column 6, FIRE 2 is row 3 / column 6, CO2 ARM is row 1 / column 7, and CO2 FIRE is row 2 / column 7 (zero-based API coordinates). The server primes current values on startup so an old press cannot replay after a restart.
+
+The Stream Deck Main Cue button replaces Shutters Strobe at page 1 / row 3 / column 2 (fourth physical row, third button). Its press action increments `pgro_sd_random_main_cue_press`; the dashboard selects a random assigned Main cue on executor `4.1`, avoiding an immediate repeat and retaining current Beam/Strobe colours. Release does nothing, so the cue continues running. The adjacent Shutters Rnd Strobe button is unchanged. Reapply the Companion 5 button using `node scripts/configure-main-cue-button.mjs`; a page backup is saved before editing.
 
 ## Startup and kiosk
 
@@ -127,6 +129,10 @@ The dashboard also maps executor 4.1 cues 23, 24, 26, and 27 into Slow; cues 28 
 Auto Cycle chooses a new non-white Beam/Strobe palette both when started and on every 15-second cue transition. The current eligible palettes are Pink Blue, Deep Blue, Fire, Toxic, and Candy; consecutive repeats are suppressed.
 
 ## Last verified production state
+
+On 18 September 2026, Companion `5.0.5` was updated through its API to replace only Shutters Strobe with the blue Main Cue / Random button. A pre-change page export is preserved under `C:\play-dashboard\logs\companion-page1-before-main-cue-1789767433244.json`. The dashboard bridge mapping and random-cue handler were deployed with matching SHA-256 hashes and `verify-install.ps1` passed: Ethernet `2.0.0.10/8`, startup task, automatic logon, MA2, Companion, Carabiner, and Chrome kiosk. MA2 and Link remained connected. Random selection was tested against mock MA2/Companion endpoints; no live cue was fired as an acceptance test.
+
+The Mac's LIGHTING service was found at `2.0.0.30/16` during this visit. SSH remains restricted to source `2.0.0.50`, so maintenance temporarily used that address and then restored `2.0.0.30 / 255.255.0.0`. Internet Sharing must remain off on this isolated lighting network; when toggled off, macOS may need the saved LIGHTING service configuration reapplied before Ethernet regains IPv4.
 
 On 8 September 2026:
 

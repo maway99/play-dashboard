@@ -846,6 +846,14 @@
           "feedbackLabel": "Fire 2",
           "pressVariable": "pgro_sd_confetti_fire2_press"
         },
+        "randomMainCue": {
+          "label": "Main Cue",
+          "page": 1,
+          "row": 3,
+          "column": 2,
+          "type": "dashboardRandomMainCue",
+          "pressVariable": "pgro_sd_random_main_cue_press"
+        },
         "co2Fire": {
           "label": "CO2 fire",
           "page": 1,

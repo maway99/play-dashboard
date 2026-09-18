@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pickRandomMainCue } from './lib/random-main-cue.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -666,6 +667,18 @@ function selectCue(cueNumber, colours) {
   broadcastState();
 }
 
+function triggerRandomMainCue() {
+  const cue = pickRandomMainCue(config.cueBanks?.mainCues?.cues, state.activeCue);
+  if (!cue) return null;
+  // Match a manual Main cue press: retain only Beam/Strobe colour selections.
+  const colours = Object.fromEntries(['beams', 'strobes'].map(fixtureId => [
+    fixtureId,
+    state.fixtureColours[fixtureId] ?? config.defaults.fixtureColours?.[fixtureId] ?? 'blue'
+  ]));
+  selectCue(cue.cue, colours);
+  return cue;
+}
+
 function setClear() {
   const { page, exec } = config.cueStack;
   ma2.send(`Off Fader ${page}`);
@@ -1006,6 +1019,13 @@ function handleCompanionButtonPress(id, button) {
       return;
     }
     markCompanionAction({ id, type: button.type, action: button.action, phase: 'press' });
+    return;
+  }
+
+  if (button.type === 'dashboardRandomMainCue') {
+    const cue = triggerRandomMainCue();
+    if (!cue) return;
+    markCompanionAction({ id, type: button.type, action: 'randomMainCue', cue: cue.cue, phase: 'press' });
     return;
   }
 
