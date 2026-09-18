@@ -172,6 +172,9 @@ The current mapping watches:
 | Flashes - Red | `1 / 1 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.107` |
 | Flashes - Blue | `1 / 1 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.108` |
 | Main Cue (replaces Shutters Strobe) | `1 / 3 / 2` | Random assigned Main cue, no immediate repeat | Main bank on `Exec 4.1`; retains Beam/Strobe colours |
+| Random Lasers (replaces Shutters Close) | `1 / 3 / 0` | Random assigned Laser cue | Laser bank on `Exec 4.1` |
+| Random Slow (replaces Shutters Open) | `1 / 3 / 1` | Random assigned Slow cue | Slow bank on `Exec 4.1` |
+| Random Strobing (replaces Shutters Rnd Strobe) | `1 / 3 / 3` | Random assigned Strobing cue | Strobing bank on `Exec 4.1` |
 | Confetti - Arm | `1 / 1 / 6` | Dashboard arm toggle | Local panel state |
 | CO2 - Arm | `1 / 1 / 7` | Dashboard arm toggle | Local panel state |
 | Confetti - Fire 1 | `1 / 2 / 6` | Timed inside confetti fire | `Cue 1 Exec 4.3`, then Off after 3s |
@@ -183,6 +186,8 @@ Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences
 `pollMs` and `confirmPolls` control bridge polling and active-state filtering. Momentary sequence controls execute every distinct Companion press event without a cooldown, allowing rapid repeated taps. Per-button `cooldownMs` remains available for latching controls such as Clear and effect-arm buttons.
 
 The Main Cue button increments `pgro_sd_random_main_cue_press` on press, with no release action or cooldown. It selects only assigned entries in `cueBanks.mainCues` (currently 1–5, 28, 32), leaves the cue running, and updates the dashboard selection. It does not start Auto Cycle or change the selected palette. For Companion 5, run `node scripts/configure-main-cue-button.mjs [Companion base URL]` to apply this button in place; the script saves a page backup before editing and leaves every other button unchanged.
+
+The four random-cue buttons have a blue background, RANDOM at the top, and LASERS / SLOW / MAIN CUE / STROBING in the middle. Each has an independent custom-variable press counter; no cooldown, held repeat, or release action is configured. Each selects only its own assigned cue bank and avoids immediately repeating the current cue. Slow, Laser, and Strobing fire with the same fade and programmed look as a manual dashboard cue press; only Main reapplies the selected Beam/Strobe colour selectors. These buttons do not start Auto Cycle or randomise palettes. Run `node scripts/configure-random-cue-buttons.mjs [Companion base URL]` to configure all four, saving a page backup first and leaving other controls unchanged.
 
 ### Fixture colour wheel
 

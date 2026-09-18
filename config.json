@@ -846,6 +846,33 @@
           "feedbackLabel": "Fire 2",
           "pressVariable": "pgro_sd_confetti_fire2_press"
         },
+        "randomLaserCue": {
+          "label": "Random Lasers",
+          "page": 1,
+          "row": 3,
+          "column": 0,
+          "type": "dashboardRandomCueBank",
+          "bankKey": "laserCues",
+          "pressVariable": "pgro_sd_random_laser_cue_press"
+        },
+        "randomSlowCue": {
+          "label": "Random Slow",
+          "page": 1,
+          "row": 3,
+          "column": 1,
+          "type": "dashboardRandomCueBank",
+          "bankKey": "slowCues",
+          "pressVariable": "pgro_sd_random_slow_cue_press"
+        },
+        "randomStrobeCue": {
+          "label": "Random Strobing",
+          "page": 1,
+          "row": 3,
+          "column": 3,
+          "type": "dashboardRandomCueBank",
+          "bankKey": "strobeCues",
+          "pressVariable": "pgro_sd_random_strobe_cue_press"
+        },
         "randomMainCue": {
           "label": "Main Cue",
           "page": 1,

@@ -26,7 +26,11 @@ async function eventually(check) {
   throw new Error('Timed out waiting for mock dashboard state');
 }
 
-test('Companion counter fires a Main cue, preserves colours and does not stop on release',
+for (const [buttonId, bankKey] of [
+  ['randomMainCue', 'mainCues'], ['randomLaserCue', 'laserCues'],
+  ['randomSlowCue', 'slowCues'], ['randomStrobeCue', 'strobeCues']
+]) {
+test(`Companion ${bankKey} counter fires only its bank and does not stop on release`,
   { timeout: 15000 }, async t => {
     const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'play-main-cue-test-'));
     const sockets = new Set();
@@ -77,7 +81,7 @@ test('Companion counter fires a Main cue, preserves colours and does not stop on
     config.ma2.ip = '127.0.0.1';
     config.ma2.port = ma2Port;
     delete config.link;
-    config.streamDeck.companion.buttons = { randomMainCue: config.streamDeck.companion.buttons.randomMainCue };
+    config.streamDeck.companion.buttons = { [buttonId]: config.streamDeck.companion.buttons[buttonId] };
     config.streamDeck.companion.baseUrl = `http://127.0.0.1:${companionPort}`;
     await fs.copyFile(path.join(root, 'server.js'), path.join(temp, 'server.js'));
     await fs.cp(path.join(root, 'lib'), path.join(temp, 'lib'), { recursive: true });
@@ -96,7 +100,7 @@ test('Companion counter fires a Main cue, preserves colours and does not stop on
     await once(client, 'open');
     client.send(JSON.stringify({ type: 'fixtureColours', colours: { beams: 'red', strobes: 'cyan' } }));
     await eventually(async () => (await readState()).fixtureColours.beams === 'red');
-    const pool = config.cueBanks.mainCues.cues.map(entry => entry.cue);
+    const pool = config.cueBanks[bankKey].cues.filter(entry => Number.isFinite(entry.cue)).map(entry => entry.cue);
     let previous = null;
     for (let tap = 0; tap < 8; tap++) {
       const start = commands.length;
@@ -109,10 +113,14 @@ test('Companion counter fires a Main cue, preserves colours and does not stop on
       assert.equal(state.fixtureColours.strobes, 'cyan');
       await eventually(() => commands.slice(start).some(command => command.startsWith('Goto Cue')));
       const sent = commands.slice(start).filter(command => command.startsWith('Goto Cue'));
-      assert.equal(sent.length, 3, 'One Main cue plus two colour-selector cues');
-      assert.equal(sent[0], `Goto Cue ${state.activeCue} Exec 4.1 Fade ${config.defaults.fadeTime}`);
-      assert.match(sent[1], /Exec 1\.1 /);
-      assert.match(sent[2], /Exec 1\.2 /);
+      assert.equal(sent.length, bankKey === 'mainCues' ? 3 : 1,
+        'Only Main reapplies colour selectors; other banks retain their programmed look');
+      const fade = ['laserCues', 'strobeCues'].includes(bankKey) ? 0 : config.defaults.fadeTime;
+      assert.equal(sent[0], `Goto Cue ${state.activeCue} Exec 4.1 Fade ${fade}`);
+      if (bankKey === 'mainCues') {
+        assert.match(sent[1], /Exec 1\.1 /);
+        assert.match(sent[2], /Exec 1\.2 /);
+      }
       previous = state.activeCue;
     }
     const count = commands.length;
@@ -120,3 +128,4 @@ test('Companion counter fires a Main cue, preserves colours and does not stop on
     assert.equal((await readState()).activeCue, previous);
     assert.equal(commands.slice(count).some(command => command === 'Off Exec 4.1'), false);
   });
+}

@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pickRandomMainCue } from './lib/random-main-cue.js';
+import { pickRandomCue, RANDOM_CUE_BANKS } from './lib/random-cue.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -667,14 +667,15 @@ function selectCue(cueNumber, colours) {
   broadcastState();
 }
 
-function triggerRandomMainCue() {
-  const cue = pickRandomMainCue(config.cueBanks?.mainCues?.cues, state.activeCue);
+function triggerRandomCue(bankKey) {
+  if (!RANDOM_CUE_BANKS.includes(bankKey)) return null;
+  const cue = pickRandomCue(config.cueBanks?.[bankKey]?.cues, state.activeCue);
   if (!cue) return null;
   // Match a manual Main cue press: retain only Beam/Strobe colour selections.
-  const colours = Object.fromEntries(['beams', 'strobes'].map(fixtureId => [
+  const colours = bankKey === 'mainCues' ? Object.fromEntries(['beams', 'strobes'].map(fixtureId => [
     fixtureId,
     state.fixtureColours[fixtureId] ?? config.defaults.fixtureColours?.[fixtureId] ?? 'blue'
-  ]));
+  ])) : undefined;
   selectCue(cue.cue, colours);
   return cue;
 }
@@ -1022,10 +1023,13 @@ function handleCompanionButtonPress(id, button) {
     return;
   }
 
-  if (button.type === 'dashboardRandomMainCue') {
-    const cue = triggerRandomMainCue();
+  if (button.type === 'dashboardRandomMainCue' || button.type === 'dashboardRandomCueBank') {
+    const bankKey = button.type === 'dashboardRandomMainCue' ? 'mainCues' : button.bankKey;
+    const cue = triggerRandomCue(bankKey);
     if (!cue) return;
-    markCompanionAction({ id, type: button.type, action: 'randomMainCue', cue: cue.cue, phase: 'press' });
+    markCompanionAction({ id, type: button.type, bankKey,
+      action: button.type === 'dashboardRandomMainCue' ? 'randomMainCue' : 'randomCue',
+      cue: cue.cue, phase: 'press' });
     return;
   }
 
@@ -1377,6 +1381,7 @@ app.get('/api/stream-deck/status', (_req, res) => {
           row: button.row,
           column: button.column,
           type: button.type,
+          bankKey: button.bankKey ?? (button.type === 'dashboardRandomMainCue' ? 'mainCues' : undefined),
           action: button.action,
           group: button.group
         }
