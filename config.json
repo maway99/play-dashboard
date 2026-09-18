@@ -846,6 +846,46 @@
           "feedbackLabel": "Fire 2",
           "pressVariable": "pgro_sd_confetti_fire2_press"
         },
+        "buildMedWhite": {
+          "label": "Build Med White",
+          "page": 1,
+          "row": 2,
+          "column": 0,
+          "type": "dashboardCue",
+          "bankKey": "buildups",
+          "cueNumber": 9,
+          "pressVariable": "pgro_sd_build_med_white_press"
+        },
+        "buildFastWhite": {
+          "label": "Build Fast White",
+          "page": 1,
+          "row": 2,
+          "column": 1,
+          "type": "dashboardCue",
+          "bankKey": "buildups",
+          "cueNumber": 10,
+          "pressVariable": "pgro_sd_build_fast_white_press"
+        },
+        "buildMedStrobe": {
+          "label": "Build Med Strobe",
+          "page": 1,
+          "row": 2,
+          "column": 2,
+          "type": "dashboardCue",
+          "bankKey": "buildups",
+          "cueNumber": 30,
+          "pressVariable": "pgro_sd_build_med_strobe_press"
+        },
+        "buildFastStrobe": {
+          "label": "Build Fast Strobe",
+          "page": 1,
+          "row": 2,
+          "column": 3,
+          "type": "dashboardCue",
+          "bankKey": "buildups",
+          "cueNumber": 31,
+          "pressVariable": "pgro_sd_build_fast_strobe_press"
+        },
         "randomLaserCue": {
           "label": "Random Lasers",
           "page": 1,

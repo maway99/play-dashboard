@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pickRandomCue, RANDOM_CUE_BANKS } from './lib/random-cue.js';
+import { findStreamDeckCue } from './lib/stream-deck-cue.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -1023,6 +1024,18 @@ function handleCompanionButtonPress(id, button) {
     return;
   }
 
+  if (button.type === 'dashboardCue') {
+    const cue = findStreamDeckCue(config.cueBanks, button);
+    if (!cue) {
+      console.warn('[StreamDeck] Ignored unassigned dashboard cue', { id, bankKey: button.bankKey, cueNumber: button.cueNumber });
+      return;
+    }
+    selectCue(cue.cue);
+    markCompanionAction({ id, type: button.type, bankKey: button.bankKey,
+      action: 'cue', cue: cue.cue, phase: 'press' });
+    return;
+  }
+
   if (button.type === 'dashboardRandomMainCue' || button.type === 'dashboardRandomCueBank') {
     const bankKey = button.type === 'dashboardRandomMainCue' ? 'mainCues' : button.bankKey;
     const cue = triggerRandomCue(bankKey);
@@ -1382,6 +1395,7 @@ app.get('/api/stream-deck/status', (_req, res) => {
           column: button.column,
           type: button.type,
           bankKey: button.bankKey ?? (button.type === 'dashboardRandomMainCue' ? 'mainCues' : undefined),
+          cueNumber: button.cueNumber,
           action: button.action,
           group: button.group
         }

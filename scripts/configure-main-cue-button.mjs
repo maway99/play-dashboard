@@ -7,18 +7,23 @@ import WebSocket from 'ws';
 
 export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000',
   requested = ['lasers', 'slow', 'main', 'strobing']) {
-  const base = new URL(baseUrl);
   const targets = [
     { id: 'lasers', column: 0, oldText: 'CLOSE', text: 'LASERS', variable: 'pgro_sd_random_laser_cue_press' },
     { id: 'slow', column: 1, oldText: 'OPEN', text: 'SLOW', variable: 'pgro_sd_random_slow_cue_press' },
     { id: 'main', column: 2, oldText: 'STROBE', text: 'MAIN CUE', variable: 'pgro_sd_random_main_cue_press' },
     { id: 'strobing', column: 3, oldText: 'RND STROBE', text: 'STROBING', variable: 'pgro_sd_random_strobe_cue_press' }
-  ].filter(target => requested.includes(target.id));
+  ].filter(target => requested.includes(target.id)).map(target => ({ ...target,
+    row: 3, heading: 'RANDOM', oldHeading: 'SHUTTERS', backgroundColor: 0x24539b }));
   if (!targets.length || requested.some(id => !targets.some(target => target.id === id))) {
     throw new Error('Unknown random-cue button selection');
   }
+  return configureCompanionCueButtons(baseUrl, targets, 'random-cues');
+}
+
+export async function configureCompanionCueButtons(baseUrl, targets, backupTag = 'cue-buttons') {
+  const base = new URL(baseUrl);
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const backup = path.join(root, 'logs', `companion-page1-before-random-cues-${Date.now()}.json`);
+  const backup = path.join(root, 'logs', `companion-page1-before-${backupTag}-${Date.now()}.json`);
   async function exportPage() {
     const res = await fetch(new URL('/int/export/page/1?format=json&includeSecrets=false', base),
       { signal: AbortSignal.timeout(10000) });
@@ -29,12 +34,12 @@ export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000
   const before = await exportPage();
   if (!before.companionBuild.startsWith('5.')) throw new Error('This setup script requires Companion 5');
   for (const target of targets) {
-    const button = before.page.controls?.[3]?.[target.column];
+    const button = before.page.controls?.[target.row]?.[target.column];
     const labels = button?.style?.layers?.filter(layer => layer.type === 'text').map(layer => layer.text.value);
     if (button?.type !== 'button-layered' ||
-        !(['SHUTTERS', target.oldText].every(label => labels.includes(label)) ||
-          [target.text, 'RANDOM'].every(label => labels.includes(label)))) {
-      throw new Error(`Unexpected button at page 1, row 3, column ${target.column}; no changes made`);
+        !([target.oldHeading, target.oldText].every(label => labels.includes(label)) ||
+          [target.text, target.heading].every(label => labels.includes(label)))) {
+      throw new Error(`Unexpected button at page 1, row ${target.row}, column ${target.column}; no changes made`);
     }
     // Validate every target before writing anything to Companion.
     if (Object.keys(button.steps).length !== 1 || !button.steps['0']) throw new Error('Unexpected button steps');
@@ -107,7 +112,7 @@ export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000
     const pages = await rpc('subscription', 'pages.watch');
     for (const target of targets) {
       const { variable } = target;
-      const controlId = pages.pages[pages.order[0]].controls[3][target.column];
+      const controlId = pages.pages[pages.order[0]].controls[target.row][target.column];
       const variableResponse = await fetch(new URL(`/api/custom-variable/${variable}/value`, base),
         { signal: AbortSignal.timeout(10000) });
       if (variableResponse.status === 404) {
@@ -132,9 +137,9 @@ export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000
 
       const { header, centre, background } = target;
       for (const [elementId, key, value] of [
-        [header.id, 'text', 'RANDOM'],
+        [header.id, 'text', target.heading],
         [centre.id, 'text', target.text],
-        [background.id, 'color', 0x24539b]
+        [background.id, 'color', target.backgroundColor]
       ]) await mutation('controls.styles.updateOption', {
         controlId, elementId, key, value: { isExpression: false, value }
       });
@@ -143,8 +148,8 @@ export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000
     const after = await exportPage();
     for (const target of targets) {
       const { header, centre, variable } = target;
-      const edited = after.page.controls[3][target.column];
-      assert.equal(edited.style.layers.find(layer => layer.id === header.id).text.value, 'RANDOM');
+      const edited = after.page.controls[target.row][target.column];
+      assert.equal(edited.style.layers.find(layer => layer.id === header.id).text.value, target.heading);
       assert.equal(edited.style.layers.find(layer => layer.id === centre.id).text.value, target.text);
       assert.equal(edited.steps['0'].action_sets.down.length, 1);
       assert.deepEqual(edited.steps['0'].action_sets.down[0].options, {
@@ -157,11 +162,11 @@ export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000
     const beforeOther = structuredClone(before.page.controls);
     const afterOther = structuredClone(after.page.controls);
     for (const target of targets) {
-      delete beforeOther[3][target.column];
-      delete afterOther[3][target.column];
+      delete beforeOther[target.row][target.column];
+      delete afterOther[target.row][target.column];
     }
     assert.deepEqual(afterOther, beforeOther, 'Another button changed during setup; inspect the saved backup');
-    console.log(`Random-cue buttons configured: ${targets.map(target => target.text).join(', ')}. Other buttons unchanged.`);
+    console.log(`Cue buttons configured: ${targets.map(target => target.text.replace(/\n/g, ' ')).join(', ')}. Other buttons unchanged.`);
   } finally {
     ws.close();
   }

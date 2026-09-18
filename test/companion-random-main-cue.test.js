@@ -26,11 +26,13 @@ async function eventually(check) {
   throw new Error('Timed out waiting for mock dashboard state');
 }
 
-for (const [buttonId, bankKey] of [
+for (const [buttonId, bankKey, fixedCue] of [
   ['randomMainCue', 'mainCues'], ['randomLaserCue', 'laserCues'],
-  ['randomSlowCue', 'slowCues'], ['randomStrobeCue', 'strobeCues']
+  ['randomSlowCue', 'slowCues'], ['randomStrobeCue', 'strobeCues'],
+  ['buildMedWhite', 'buildups', 9], ['buildFastWhite', 'buildups', 10],
+  ['buildMedStrobe', 'buildups', 30], ['buildFastStrobe', 'buildups', 31]
 ]) {
-test(`Companion ${bankKey} counter fires only its bank and does not stop on release`,
+test(`Companion ${buttonId} counter fires its assigned cues and does not stop on release`,
   { timeout: 15000 }, async t => {
     const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'play-main-cue-test-'));
     const sockets = new Set();
@@ -100,22 +102,24 @@ test(`Companion ${bankKey} counter fires only its bank and does not stop on rele
     await once(client, 'open');
     client.send(JSON.stringify({ type: 'fixtureColours', colours: { beams: 'red', strobes: 'cyan' } }));
     await eventually(async () => (await readState()).fixtureColours.beams === 'red');
+    await eventually(() => commands.filter(command => command.startsWith('Goto Cue')).length === 2);
     const pool = config.cueBanks[bankKey].cues.filter(entry => Number.isFinite(entry.cue)).map(entry => entry.cue);
     let previous = null;
     for (let tap = 0; tap < 8; tap++) {
       const start = commands.length;
       counter++;
-      await eventually(async () => (await readState()).activeCue !== previous);
+      const expectedCount = bankKey === 'mainCues' ? 3 : 1;
+      await eventually(() => commands.slice(start).filter(command => command.startsWith('Goto Cue')).length === expectedCount);
       const state = await readState();
       assert.ok(pool.includes(state.activeCue));
-      assert.notEqual(state.activeCue, previous);
+      if (fixedCue) assert.equal(state.activeCue, fixedCue, 'Every tap must fire the fixed build cue, including repeated taps');
+      else assert.notEqual(state.activeCue, previous);
       assert.equal(state.fixtureColours.beams, 'red');
       assert.equal(state.fixtureColours.strobes, 'cyan');
-      await eventually(() => commands.slice(start).some(command => command.startsWith('Goto Cue')));
       const sent = commands.slice(start).filter(command => command.startsWith('Goto Cue'));
       assert.equal(sent.length, bankKey === 'mainCues' ? 3 : 1,
         'Only Main reapplies colour selectors; other banks retain their programmed look');
-      const fade = ['laserCues', 'strobeCues'].includes(bankKey) ? 0 : config.defaults.fadeTime;
+      const fade = ['laserCues', 'strobeCues', 'buildups'].includes(bankKey) ? 0 : config.defaults.fadeTime;
       assert.equal(sent[0], `Goto Cue ${state.activeCue} Exec 4.1 Fade ${fade}`);
       if (bankKey === 'mainCues') {
         assert.match(sent[1], /Exec 1\.1 /);

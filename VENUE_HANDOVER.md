@@ -53,6 +53,8 @@ The Companion confetti bridge uses custom-variable counters `pgro_sd_confetti_ar
 
 The fourth physical Stream Deck row now has four blue RANDOM buttons, with LASERS / SLOW / MAIN CUE / STROBING in the middle. They replace Shutters Close / Open / Strobe / Rnd Strobe at page 1 / row 3 / columns 0–3 respectively. Each picks a random assigned cue from its matching bank on executor `4.1`, avoiding an immediate repeat. Main retains current Beam/Strobe colours; the other banks use the same programmed look and fade as a manual dashboard press (Laser and Strobing use zero fade). No Auto Cycle or palette change is started. Each has an independent `pgro_sd_random_{laser|slow|main|strobe}_cue_press` counter. Release does nothing, so the cue continues running. Reapply all four Companion 5 buttons with `node scripts/configure-random-cue-buttons.mjs`; the original `configure-main-cue-button.mjs` command still changes Main only. A page backup is saved before editing.
 
+The third physical Stream Deck row now has four amber BUILD buttons at page 1 / row 2 / columns 0–3. MED WHITE (formerly Hits Beams) fires cue 9, Med Rnd Chase; FAST WHITE (Hits Strobes) fires cue 10, Fast Rnd Chase; MED STROBE (Hits Half 1) fires cue 30, Strobe Col Rnd Med; FAST STROBE (Hits Half 2) fires cue 31, Strobe Col Rnd Fast. All are on executor `4.1`, use zero fade, preserve the cue's programmed look without reapplying colour selectors, and remain active after release. Every observed press fires again, even when the same cue is already active. Their distinct counters are `pgro_sd_build_{med_white|fast_white|med_strobe|fast_strobe}_press`. Reapply these four with `node scripts/configure-build-cue-buttons.mjs`; the random-cue scripts still affect only their original controls.
+
 ## Startup and kiosk
 
 The unattended sequence is:
@@ -135,6 +137,8 @@ On 18 September 2026, Companion `5.0.5` was updated through its API to replace o
 The Mac's LIGHTING service was found at `2.0.0.30/16` during this visit. SSH remains restricted to source `2.0.0.50`, so maintenance temporarily used that address and then restored `2.0.0.30 / 255.255.0.0`. Internet Sharing must remain off on this isolated lighting network; when toggled off, macOS may need the saved LIGHTING service configuration reapplied before Ethernet regains IPv4.
 
 Later on 18 September 2026, the remaining three Shutters buttons were replaced with Random Lasers, Random Slow, and Random Strobing. Their cue pools are Laser 11–14, 16–18, 20–22; Slow 23, 24, 26, 27; and Strobing 6, 8. End Of Night (7), Buildup cues, and placeholders are not included. A pre-change page export is retained at `C:\play-dashboard\logs\companion-page1-before-random-cues-1789767878803.json`. All four random-cue bridges were tested with mock MA2/Companion endpoints without firing live lights.
+
+The four former Hits buttons were also changed on 18 September 2026 into the fixed Build actions above. The pre-change Companion export is retained under `C:\play-dashboard\logs\companion-page1-before-build-cues-1789768278161.json`. The test suite now checks all eight random/fixed cue actions against mock MA2/Companion endpoints, including eight successive presses of each fixed build cue and no stop on release. No live lighting cue was fired for testing.
 
 On 8 September 2026:
 

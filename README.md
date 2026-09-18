@@ -175,6 +175,10 @@ The current mapping watches:
 | Random Lasers (replaces Shutters Close) | `1 / 3 / 0` | Random assigned Laser cue | Laser bank on `Exec 4.1` |
 | Random Slow (replaces Shutters Open) | `1 / 3 / 1` | Random assigned Slow cue | Slow bank on `Exec 4.1` |
 | Random Strobing (replaces Shutters Rnd Strobe) | `1 / 3 / 3` | Random assigned Strobing cue | Strobing bank on `Exec 4.1` |
+| Build - Med White (replaces Hits Beams) | `1 / 2 / 0` | Med Rnd Chase | `Cue 9 Exec 4.1 Fade 0` |
+| Build - Fast White (replaces Hits Strobes) | `1 / 2 / 1` | Fast Rnd Chase | `Cue 10 Exec 4.1 Fade 0` |
+| Build - Med Strobe (replaces Hits Half 1) | `1 / 2 / 2` | Strobe Col Rnd Med | `Cue 30 Exec 4.1 Fade 0` |
+| Build - Fast Strobe (replaces Hits Half 2) | `1 / 2 / 3` | Strobe Col Rnd Fast | `Cue 31 Exec 4.1 Fade 0` |
 | Confetti - Arm | `1 / 1 / 6` | Dashboard arm toggle | Local panel state |
 | CO2 - Arm | `1 / 1 / 7` | Dashboard arm toggle | Local panel state |
 | Confetti - Fire 1 | `1 / 2 / 6` | Timed inside confetti fire | `Cue 1 Exec 4.3`, then Off after 3s |
@@ -188,6 +192,8 @@ Momentary MA2 sequence buttons trigger the mapped `executors.streamDeckSequences
 The Main Cue button increments `pgro_sd_random_main_cue_press` on press, with no release action or cooldown. It selects only assigned entries in `cueBanks.mainCues` (currently 1–5, 28, 32), leaves the cue running, and updates the dashboard selection. It does not start Auto Cycle or change the selected palette. For Companion 5, run `node scripts/configure-main-cue-button.mjs [Companion base URL]` to apply this button in place; the script saves a page backup before editing and leaves every other button unchanged.
 
 The four random-cue buttons have a blue background, RANDOM at the top, and LASERS / SLOW / MAIN CUE / STROBING in the middle. Each has an independent custom-variable press counter; no cooldown, held repeat, or release action is configured. Each selects only its own assigned cue bank and avoids immediately repeating the current cue. Slow, Laser, and Strobing fire with the same fade and programmed look as a manual dashboard cue press; only Main reapplies the selected Beam/Strobe colour selectors. These buttons do not start Auto Cycle or randomise palettes. Run `node scripts/configure-random-cue-buttons.mjs [Companion base URL]` to configure all four, saving a page backup first and leaving other controls unchanged.
+
+The four Build buttons use a warm amber background, BUILD at the top, and MED WHITE / FAST WHITE / MED STROBE / FAST STROBE in the middle. They fire the corresponding programmed Build Up cue on press, including repeated taps of the same cue, with zero fade and no colour-selector override. They remain active after release, just like a manual dashboard Build Up press. They do not toggle, repeat while held, start Auto Cycle, or fire special effects. Run `node scripts/configure-build-cue-buttons.mjs [Companion base URL]` to reapply only these four Companion buttons, saving a page backup first.
 
 ### Fixture colour wheel
 
