@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import WebSocket from 'ws';
+import { getStreamDeckColourChoices } from '../lib/stream-deck-colours.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 async function listen(server) {
@@ -30,7 +31,9 @@ for (const [buttonId, bankKey, fixedCue] of [
   ['randomMainCue', 'mainCues'], ['randomLaserCue', 'laserCues'],
   ['randomSlowCue', 'slowCues'], ['randomStrobeCue', 'strobeCues'],
   ['buildMedWhite', 'buildups', 9], ['buildFastWhite', 'buildups', 10],
-  ['buildMedStrobe', 'buildups', 30], ['buildFastStrobe', 'buildups', 31]
+  ['buildMedStrobe', 'buildups', 30], ['buildFastStrobe', 'buildups', 31],
+  ['randomColours', null], ['beamsWhite', null], ['strobesRedColour', null],
+  ['whiteFlash', null], ['flashWhiteChase', null]
 ]) {
 test(`Companion ${buttonId} counter fires its assigned cues and does not stop on release`,
   { timeout: 15000 }, async t => {
@@ -55,10 +58,12 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
       });
     });
     let counter = 9;
+    let releaseCounter = 9;
+    let releaseVariable;
     let reads = 0;
     const companion = http.createServer((_req, res) => {
       reads++;
-      res.end(String(counter));
+      res.end(String(releaseVariable && _req.url.includes(`/${releaseVariable}/`) ? releaseCounter : counter));
     });
     let child;
     let client;
@@ -84,6 +89,8 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
     config.ma2.port = ma2Port;
     delete config.link;
     config.streamDeck.companion.buttons = { [buttonId]: config.streamDeck.companion.buttons[buttonId] };
+    const selectedButton = config.streamDeck.companion.buttons[buttonId];
+    releaseVariable = selectedButton.releaseVariable;
     config.streamDeck.companion.baseUrl = `http://127.0.0.1:${companionPort}`;
     await fs.copyFile(path.join(root, 'server.js'), path.join(temp, 'server.js'));
     await fs.cp(path.join(root, 'lib'), path.join(temp, 'lib'), { recursive: true });
@@ -100,9 +107,51 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
       'The saved counter must not replay when the server starts');
     client = new WebSocket(`ws://127.0.0.1:${panelPort}/ws`);
     await once(client, 'open');
-    client.send(JSON.stringify({ type: 'fixtureColours', colours: { beams: 'red', strobes: 'cyan' } }));
+    client.send(JSON.stringify({ type: 'fixtureColours', colours: { beams: 'red', strobes: 'cyan', lasers: 'green' } }));
     await eventually(async () => (await readState()).fixtureColours.beams === 'red');
-    await eventually(() => commands.filter(command => command.startsWith('Goto Cue')).length === 2);
+    await eventually(() => commands.filter(command => command.startsWith('Goto Cue')).length === 3);
+    if (!bankKey) {
+      const momentary = selectedButton.type === 'momentarySequence';
+      const randomColour = selectedButton.type === 'dashboardRandomColours';
+      const choices = getStreamDeckColourChoices(config.colourControls, config.streamDeck.colourChoices);
+      let previousColours = { beams: 'red', strobes: 'cyan' };
+      for (let tap = 0; tap < 8; tap++) {
+        const start = commands.length;
+        counter++;
+        const expectedCount = randomColour ? 2 : 1;
+        await eventually(() => commands.slice(start).filter(command => command.startsWith('Goto Cue')).length === expectedCount);
+        const state = await readState();
+        assert.equal(state.activeCue, null, 'Colour/flash actions must not change the main cue stack');
+        assert.equal(state.fixtureColours.lasers, 'green');
+        const sent = commands.slice(start).filter(command => command.startsWith('Goto Cue'));
+        if (momentary) {
+          const target = config.executors.streamDeckSequences[selectedButton.action];
+          assert.equal(sent[0], `Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 0`);
+          const off = `Off Exec ${target.page}.${target.exec}`;
+          await delay(60);
+          assert.equal(commands.slice(start).includes(off), false, 'Flash must stay on until release');
+          releaseCounter++;
+          await eventually(() => commands.slice(start).includes(off));
+          assert.equal(commands.slice(start).filter(command => command === off).length, 1);
+          assert.equal(state.fixtureColours.beams, 'red');
+          assert.equal(state.fixtureColours.strobes, 'cyan');
+        } else if (randomColour) {
+          const pair = { beams: state.fixtureColours.beams, strobes: state.fixtureColours.strobes };
+          assert.ok(choices.some(choice => choice.colours.beams === pair.beams && choice.colours.strobes === pair.strobes));
+          assert.notDeepEqual(pair, previousColours, 'Do not immediately repeat the current colour combination');
+          assert.match(sent[0], /Exec 1\.1 /);
+          assert.match(sent[1], /Exec 1\.2 /);
+          previousColours = pair;
+        } else {
+          const fixture = config.colourControls.fixtures.find(entry => entry.id === selectedButton.fixtureId);
+          assert.equal(sent[0], `Goto Cue ${fixture.cues[selectedButton.colourId]} Exec ${fixture.page}.${fixture.exec} Fade ${config.defaults.fadeTime}`);
+          assert.equal(state.fixtureColours[selectedButton.fixtureId], selectedButton.colourId);
+          assert.equal(state.fixtureColours[selectedButton.fixtureId === 'beams' ? 'strobes' : 'beams'],
+            selectedButton.fixtureId === 'beams' ? 'cyan' : 'red');
+        }
+      }
+      return;
+    }
     const pool = config.cueBanks[bankKey].cues.filter(entry => Number.isFinite(entry.cue)).map(entry => entry.cue);
     let previous = null;
     for (let tap = 0; tap < 8; tap++) {
@@ -116,6 +165,7 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
       else assert.notEqual(state.activeCue, previous);
       assert.equal(state.fixtureColours.beams, 'red');
       assert.equal(state.fixtureColours.strobes, 'cyan');
+      assert.equal(state.fixtureColours.lasers, 'green');
       const sent = commands.slice(start).filter(command => command.startsWith('Goto Cue'));
       assert.equal(sent.length, bankKey === 'mainCues' ? 3 : 1,
         'Only Main reapplies colour selectors; other banks retain their programmed look');

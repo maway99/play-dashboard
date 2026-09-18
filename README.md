@@ -163,14 +163,13 @@ The current mapping watches:
 |--------|----------------------------|--------------|----------------|
 | Strobes - White | `1 / 0 / 0` | Momentary MA2 sequence | `Cue 1 Exec 1.101` |
 | Strobes - White rnd | `1 / 0 / 1` | Momentary MA2 sequence | `Cue 1 Exec 1.103` |
-| Strobes - Red | `1 / 0 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.104` |
-| Strobes - Blue | `1 / 0 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.105` |
+| Flashes - White | `1 / 0 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.102` |
+| Flashes - White chase | `1 / 0 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.106` |
 | Control - Clear | `1 / 0 / 6` | Dashboard Clear | Uses `Off Fader 4`, `Off Exec 4.1`, and clears End of Night if active |
 | Control - Blackout | `1 / 0 / 7` | Momentary MA2 sequence | `Cue 1 Exec 1.109` |
-| Flashes - White | `1 / 1 / 0` | Momentary MA2 sequence | `Cue 1 Exec 1.102` |
-| Flashes - White chase | `1 / 1 / 1` | Momentary MA2 sequence | `Cue 1 Exec 1.106` |
-| Flashes - Red | `1 / 1 / 2` | Momentary MA2 sequence | `Cue 1 Exec 1.107` |
-| Flashes - Blue | `1 / 1 / 3` | Momentary MA2 sequence | `Cue 1 Exec 1.108` |
+| Colour - RND COL | `1 / 1 / 0` | Random Beam/Strobe colour or palette | Selectors `Exec 1.1` and `Exec 1.2` |
+| Beams - White | `1 / 1 / 1` | Beam colour only | `Cue 1 Exec 1.1` |
+| Strobes - Red | `1 / 1 / 2` | Strobe colour only, not a strobe fire action | `Cue 2 Exec 1.2` |
 | Main Cue (replaces Shutters Strobe) | `1 / 3 / 2` | Random assigned Main cue, no immediate repeat | Main bank on `Exec 4.1`; retains Beam/Strobe colours |
 | Random Lasers (replaces Shutters Close) | `1 / 3 / 0` | Random assigned Laser cue | Laser bank on `Exec 4.1` |
 | Random Slow (replaces Shutters Open) | `1 / 3 / 1` | Random assigned Slow cue | Slow bank on `Exec 4.1` |
@@ -196,6 +195,10 @@ The four random-cue buttons have a blue background, RANDOM at the top, and LASER
 The four Build buttons use a warm amber background, BUILD at the top, and MED WHITE / FAST WHITE / MED STROBE / FAST STROBE in the middle. They fire the corresponding programmed Build Up cue on press, including repeated taps of the same cue, with zero fade and no colour-selector override. They remain active after release, just like a manual dashboard Build Up press. They do not toggle, repeat while held, start Auto Cycle, or fire special effects. Run `node scripts/configure-build-cue-buttons.mjs [Companion base URL]` to reapply only these four Companion buttons, saving a page backup first.
 
 ### Fixture colour wheel
+
+The white flash and white chase controls now sit beside the white strobe controls on the top row. Their original press/release actions are preserved; the four red/blue performance controls have been removed from the deck, not from MA2. The second row begins RND COL / Beams White / Strobes Red, followed by an empty key. RND COL chooses equally among Red, Green, Blue, Orange, Magenta (the existing Rose red selector cue 7), Cyan, Pink Blue, Fire, and Candy, excluding an immediate repeat of the current Beam/Strobe colour pair. Existing palettes are reused, but their Laser colour is never applied. All three colour buttons act on every observed press, have no release action or cooldown, preserve the running cue, and use the dashboard's selected colour fade. Independent counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`.
+
+Run `node scripts/configure-colour-flash-layout.mjs [Companion base URL]` to apply this layout through the Companion 5 API. It checks the expected old or new layout and released key states, saves a page backup, moves the actual white flash controls intact, and verifies that unrelated buttons are unchanged. Keep `scripts/companion-api.mjs` alongside the setup scripts. No live lighting output is used by the automated mock tests.
 
 The shared fixture-colour controls are based on the official CLB260 user manual DMX protocol. The manual lists the colour wheel on **CH8**, not CH7: `000-010` open, `011-015` through `061-065` as COLOR 1-11, `066-070` open, then indexed colour-wheel and rainbow ranges. The official product page describes this as 11 fixed dichroic colours plus white; Betopper's wheel images label COLOR 1-11 as Red, Green, Blue, Yellow, Orange, Rose red, Light blue, Grass green, Cyan, 3200K, and 5600K.
 

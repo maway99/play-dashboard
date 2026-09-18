@@ -57,6 +57,8 @@ The third physical Stream Deck row now has four amber BUILD buttons at page 1 / 
 
 ## Startup and kiosk
 
+The top physical Stream Deck row starts STROBES WHITE / STROBES WHITE RND / FLASHES WHITE / FLASHES WHITE CHASE (page 1, row 0, columns 0–3). The two white flashes were moved intact; all four red/blue flash/strobe performance keys were removed. The second row starts COLOUR RND COL / BEAMS WHITE / STROBES RED / empty (row 1, columns 0–3). Strobes Red is a colour selector, not a strobe fire key. RND COL picks Red, Green, Blue, Orange, Magenta (existing Rose red cue 7), Cyan, Pink Blue, Fire, or Candy with equal chance and no immediate repeat of the effective Beam/Strobe pair. It changes only Beams and Strobes, never Lasers; the existing palette definitions are reused. All three colour actions latch on each press, preserve the active cue and use the selected colour fade. Counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`. Reapply with `node scripts/configure-colour-flash-layout.mjs`; its page exports and layout/held-state checks protect unrelated keys. The pre-change page export is retained at `C:\play-dashboard\logs\companion-page1-before-colour-flash-layout-1789768927472.json`. The 27-test suite checks rapid colour taps, the exact nine-option pool, no Laser changes, and both moved flashes' press/release behaviour against mock endpoints without firing live lights.
+
 The unattended sequence is:
 
 1. Windows signs into the venue account automatically.

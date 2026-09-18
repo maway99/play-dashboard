@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
-import WebSocket from 'ws';
+import { withCompanionApi } from './companion-api.mjs';
 
 export async function configureRandomCueButtons(baseUrl = 'http://127.0.0.1:8000',
   requested = ['lasers', 'slow', 'main', 'strobing']) {
@@ -60,55 +60,7 @@ export async function configureCompanionCueButtons(baseUrl, targets, backupTag =
   fs.writeFileSync(backup, JSON.stringify(before, null, 2));
   console.log(`Page backup: ${backup}`);
 
-  const wsUrl = new URL('/trpc', base);
-  wsUrl.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(wsUrl);
-  const pending = new Map();
-  let nextId = 1;
-  ws.on('message', raw => {
-    const messages = JSON.parse(raw);
-    for (const message of Array.isArray(messages) ? messages : [messages]) {
-      const request = pending.get(message.id);
-      if (!request) continue;
-      if (message.error || message.result?.type === 'data') {
-        pending.delete(message.id);
-        clearTimeout(request.timer);
-        if (request.subscription) ws.send(JSON.stringify({ id: message.id, method: 'subscription.stop' }));
-        if (message.error) request.reject(new Error(JSON.stringify(message.error)));
-        else request.resolve(message.result.data);
-      }
-    }
-  });
-  ws.on('error', error => {
-    for (const request of pending.values()) {
-      clearTimeout(request.timer);
-      request.reject(error);
-    }
-    pending.clear();
-  });
-  function rpc(method, rpcPath, input = null) {
-    const id = nextId++;
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        pending.delete(id);
-        reject(new Error(`Companion API timeout: ${rpcPath}`));
-      }, 10000);
-      pending.set(id, { resolve, reject, timer, subscription: method === 'subscription' });
-      ws.send(JSON.stringify({ id, method, params: { path: rpcPath, input } }));
-    });
-  }
-  async function mutation(rpcPath, input) {
-    const result = await rpc('mutation', rpcPath, input);
-    if (result === false) throw new Error(`Companion rejected ${rpcPath}`);
-    return result;
-  }
-
-  try {
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Companion WebSocket connection timeout')), 10000);
-      ws.once('open', () => { clearTimeout(timer); resolve(); });
-      ws.once('error', error => { clearTimeout(timer); reject(error); });
-    });
+  await withCompanionApi(baseUrl, async ({ rpc, mutation }) => {
     const pages = await rpc('subscription', 'pages.watch');
     for (const target of targets) {
       const { variable } = target;
@@ -167,9 +119,7 @@ export async function configureCompanionCueButtons(baseUrl, targets, backupTag =
     }
     assert.deepEqual(afterOther, beforeOther, 'Another button changed during setup; inspect the saved backup');
     console.log(`Cue buttons configured: ${targets.map(target => target.text.replace(/\n/g, ' ')).join(', ')}. Other buttons unchanged.`);
-  } finally {
-    ws.close();
-  }
+  });
 }
 
 // Keep the original command scoped to Main; the new command configures the group.

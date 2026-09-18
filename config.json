@@ -686,6 +686,17 @@
     ]
   },
   "streamDeck": {
+    "colourChoices": [
+      { "id": "red", "colour": "red" },
+      { "id": "green", "colour": "green" },
+      { "id": "blue", "colour": "blue" },
+      { "id": "orange", "colour": "orange" },
+      { "id": "magenta", "colour": "roseRed" },
+      { "id": "cyan", "colour": "cyan" },
+      { "id": "pinkBlue", "palette": "pinkBlue" },
+      { "id": "fire", "palette": "fire" },
+      { "id": "candy", "palette": "candy" }
+    ],
     "companion": {
       "enabled": true,
       "baseUrl": "http://2.0.0.10:8000",
@@ -714,28 +725,6 @@
           "releaseVariable": "pgro_sd_strobe_white_random_up",
           "cooldownMs": 750
         },
-        "strobeRed": {
-          "label": "Red strobe",
-          "page": 1,
-          "row": 0,
-          "column": 2,
-          "type": "momentarySequence",
-          "action": "strobeRed",
-          "pressVariable": "pgro_sd_strobe_red_down",
-          "releaseVariable": "pgro_sd_strobe_red_up",
-          "cooldownMs": 750
-        },
-        "strobeBlue": {
-          "label": "Blue strobe",
-          "page": 1,
-          "row": 0,
-          "column": 3,
-          "type": "momentarySequence",
-          "action": "strobeBlue",
-          "pressVariable": "pgro_sd_strobe_blue_down",
-          "releaseVariable": "pgro_sd_strobe_blue_up",
-          "cooldownMs": 750
-        },
         "clear": {
           "label": "Clear",
           "page": 1,
@@ -759,8 +748,8 @@
         "whiteFlash": {
           "label": "White flash",
           "page": 1,
-          "row": 1,
-          "column": 0,
+          "row": 0,
+          "column": 2,
           "type": "momentarySequence",
           "action": "whiteFlash",
           "pressVariable": "pgro_sd_white_flash_down",
@@ -770,35 +759,41 @@
         "flashWhiteChase": {
           "label": "White chase flash",
           "page": 1,
-          "row": 1,
-          "column": 1,
+          "row": 0,
+          "column": 3,
           "type": "momentarySequence",
           "action": "flashWhiteChase",
           "pressVariable": "pgro_sd_flash_white_chase_down",
           "releaseVariable": "pgro_sd_flash_white_chase_up",
           "cooldownMs": 750
         },
-        "flashRed": {
-          "label": "Red flash",
+        "randomColours": {
+          "label": "Rnd Col",
+          "page": 1,
+          "row": 1,
+          "column": 0,
+          "type": "dashboardRandomColours",
+          "pressVariable": "pgro_sd_random_colours_press"
+        },
+        "beamsWhite": {
+          "label": "Beams White",
+          "page": 1,
+          "row": 1,
+          "column": 1,
+          "type": "dashboardFixtureColour",
+          "fixtureId": "beams",
+          "colourId": "open",
+          "pressVariable": "pgro_sd_beams_white_press"
+        },
+        "strobesRedColour": {
+          "label": "Strobes Red",
           "page": 1,
           "row": 1,
           "column": 2,
-          "type": "momentarySequence",
-          "action": "flashRed",
-          "pressVariable": "pgro_sd_flash_red_down",
-          "releaseVariable": "pgro_sd_flash_red_up",
-          "cooldownMs": 750
-        },
-        "flashBlue": {
-          "label": "Blue flash",
-          "page": 1,
-          "row": 1,
-          "column": 3,
-          "type": "momentarySequence",
-          "action": "flashBlue",
-          "pressVariable": "pgro_sd_flash_blue_down",
-          "releaseVariable": "pgro_sd_flash_blue_up",
-          "cooldownMs": 750
+          "type": "dashboardFixtureColour",
+          "fixtureId": "strobes",
+          "colourId": "red",
+          "pressVariable": "pgro_sd_strobes_red_colour_press"
         },
         "confettiArm": {
           "label": "Confetti arm",

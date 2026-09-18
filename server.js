@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pickRandomCue, RANDOM_CUE_BANKS } from './lib/random-cue.js';
 import { findStreamDeckCue } from './lib/stream-deck-cue.js';
+import { getStreamDeckColourChoices, pickStreamDeckColour } from './lib/stream-deck-colours.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -1024,6 +1025,22 @@ function handleCompanionButtonPress(id, button) {
     return;
   }
 
+  if (button.type === 'dashboardRandomColours') {
+    const choices = getStreamDeckColourChoices(config.colourControls, config.streamDeck.colourChoices);
+    const choice = pickStreamDeckColour(choices, state.fixtureColours);
+    if (!choice) return;
+    setFixtureColours(choice.colours);
+    markCompanionAction({ id, type: button.type, action: 'randomColours', choice: choice.id, colours: choice.colours });
+    return;
+  }
+
+  if (button.type === 'dashboardFixtureColour') {
+    if (!findColourControl(button.fixtureId, button.colourId)) return;
+    setFixtureColour(button.fixtureId, button.colourId);
+    markCompanionAction({ id, type: button.type, action: 'fixtureColour', fixtureId: button.fixtureId, colourId: button.colourId });
+    return;
+  }
+
   if (button.type === 'dashboardCue') {
     const cue = findStreamDeckCue(config.cueBanks, button);
     if (!cue) {
@@ -1396,6 +1413,8 @@ app.get('/api/stream-deck/status', (_req, res) => {
           type: button.type,
           bankKey: button.bankKey ?? (button.type === 'dashboardRandomMainCue' ? 'mainCues' : undefined),
           cueNumber: button.cueNumber,
+          fixtureId: button.fixtureId,
+          colourId: button.colourId,
           action: button.action,
           group: button.group
         }
