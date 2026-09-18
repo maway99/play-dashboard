@@ -110,14 +110,12 @@ try {
     value: { isExpression: true, value: `$(custom:${variable}) + 1` }
   })) await mutation('controls.entities.setOption', { controlId, entityLocation, entityId, key, value });
 
-  const header = target.style.layers.find(layer => layer.type === 'text' &&
-    ['SHUTTERS', 'MAIN CUE'].includes(layer.text.value));
-  const centre = target.style.layers.find(layer => layer.type === 'text' &&
-    ['STROBE', 'RANDOM'].includes(layer.text.value));
+  const header = target.style.layers.find(layer => layer.type === 'text' && layer.valign.value === 'top');
+  const centre = target.style.layers.find(layer => layer.type === 'text' && layer.valign.value === 'center');
   const background = target.style.layers.find(layer => layer.type === 'box' && layer.height.value === 100);
   for (const [elementId, key, value] of [
-    [header.id, 'text', 'MAIN CUE'],
-    [centre.id, 'text', 'RANDOM'],
+    [header.id, 'text', 'RANDOM'],
+    [centre.id, 'text', 'MAIN CUE'],
     [background.id, 'color', 0x24539b]
   ]) await mutation('controls.styles.updateOption', {
     controlId, elementId, key, value: { isExpression: false, value }
@@ -125,6 +123,8 @@ try {
 
   const after = await exportPage();
   const edited = after.page.controls[3][2];
+  assert.equal(edited.style.layers.find(layer => layer.id === header.id).text.value, 'RANDOM');
+  assert.equal(edited.style.layers.find(layer => layer.id === centre.id).text.value, 'MAIN CUE');
   assert.equal(edited.steps['0'].action_sets.down.length, 1);
   assert.deepEqual(edited.steps['0'].action_sets.down[0].options, {
     name: { isExpression: false, value: variable },

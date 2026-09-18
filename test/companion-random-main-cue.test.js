@@ -34,6 +34,8 @@ test('Companion counter fires a Main cue, preserves colours and does not stop on
     const ma2 = net.createServer(socket => {
       sockets.add(socket);
       socket.on('close', () => sockets.delete(socket));
+      // Windows terminates the mock child abruptly on SIGTERM during cleanup.
+      socket.on('error', error => { if (error.code !== 'ECONNRESET') throw error; });
       socket.write('>\r\n');
       let buffer = '';
       socket.on('data', data => {
