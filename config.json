@@ -185,84 +185,27 @@
     ],
     "palettes": [
       {
-        "id": "iceSnap",
-        "label": "Ice snap",
+        "id": "orangeRed",
+        "label": "Orange / Red",
         "colours": {
-          "beams": "open",
-          "strobes": "cyan",
-          "lasers": "cyan"
+          "beams": "orange",
+          "strobes": "red"
         }
       },
       {
-        "id": "warmPulse",
-        "label": "Warm pulse",
-        "colours": {
-          "beams": "filter3200",
-          "strobes": "open",
-          "lasers": "yellow"
-        }
-      },
-      {
-        "id": "laserRoom",
-        "label": "Laser room",
-        "colours": {
-          "beams": "green",
-          "strobes": "open",
-          "lasers": "green"
-        }
-      },
-      {
-        "id": "pinkBlue",
-        "label": "Pink blue",
+        "id": "magentaRed",
+        "label": "Magenta / Red",
         "colours": {
           "beams": "roseRed",
-          "strobes": "blue",
-          "lasers": "lightBlue"
+          "strobes": "red"
         }
       },
       {
-        "id": "redline",
-        "label": "Redline",
+        "id": "cyanRed",
+        "label": "Cyan / Red",
         "colours": {
-          "beams": "red",
-          "strobes": "open",
-          "lasers": "red"
-        }
-      },
-      {
-        "id": "deepBlue",
-        "label": "Deep blue",
-        "colours": {
-          "beams": "blue",
-          "strobes": "lightBlue",
-          "lasers": "blue"
-        }
-      },
-      {
-        "id": "fire",
-        "label": "Fire",
-        "colours": {
-          "beams": "red",
-          "strobes": "orange",
-          "lasers": "red"
-        }
-      },
-      {
-        "id": "toxic",
-        "label": "Toxic",
-        "colours": {
-          "beams": "grassGreen",
-          "strobes": "yellow",
-          "lasers": "grassGreen"
-        }
-      },
-      {
-        "id": "candy",
-        "label": "Candy",
-        "colours": {
-          "beams": "roseRed",
-          "strobes": "cyan",
-          "lasers": "lightBlue"
+          "beams": "cyan",
+          "strobes": "red"
         }
       },
       {
@@ -270,19 +213,8 @@
         "label": "Warm white",
         "colours": {
           "beams": "filter3200",
-          "strobes": "filter3200",
-          "lasers": "filter3200"
+          "strobes": "filter3200"
         }
-      },
-      {
-        "id": "palette-11",
-        "label": "Palette 11",
-        "placeholder": true
-      },
-      {
-        "id": "palette-12",
-        "label": "Palette 12",
-        "placeholder": true
       }
     ]
   },
@@ -687,15 +619,15 @@
   },
   "streamDeck": {
     "colourChoices": [
-      { "id": "red", "colour": "red" },
-      { "id": "green", "colour": "green" },
-      { "id": "blue", "colour": "blue" },
-      { "id": "orange", "colour": "orange" },
-      { "id": "magenta", "colour": "roseRed" },
-      { "id": "cyan", "colour": "cyan" },
-      { "id": "pinkBlue", "palette": "pinkBlue" },
-      { "id": "fire", "palette": "fire" },
-      { "id": "candy", "palette": "candy" }
+      { "id": "orangeRed", "palette": "orangeRed" },
+      { "id": "magentaRed", "palette": "magentaRed" },
+      { "id": "cyanRed", "palette": "cyanRed" },
+      { "id": "warmWhite", "palette": "warmWhite" },
+      { "id": "allRed", "colour": "red" },
+      { "id": "allGreen", "colour": "green" },
+      { "id": "allBlue", "colour": "blue" },
+      { "id": "allOrange", "colour": "orange" },
+      { "id": "allMagenta", "colour": "roseRed" }
     ],
     "companion": {
       "enabled": true,

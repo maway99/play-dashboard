@@ -5,16 +5,29 @@ import { getStreamDeckColourChoices, pickStreamDeckColour } from '../lib/stream-
 
 const config = JSON.parse(fs.readFileSync(new URL('../config.json', import.meta.url)));
 const choices = getStreamDeckColourChoices(config.colourControls, config.streamDeck.colourChoices);
-test('RND COL offers exactly six solids and three existing palettes, without laser changes', () => {
+test('the operator palette panel contains only the requested Beam/Strobe combinations', () => {
+  assert.deepEqual(config.colourControls.palettes, [
+    { id: 'orangeRed', label: 'Orange / Red', colours: { beams: 'orange', strobes: 'red' } },
+    { id: 'magentaRed', label: 'Magenta / Red', colours: { beams: 'roseRed', strobes: 'red' } },
+    { id: 'cyanRed', label: 'Cyan / Red', colours: { beams: 'cyan', strobes: 'red' } },
+    { id: 'warmWhite', label: 'Warm white', colours: { beams: 'filter3200', strobes: 'filter3200' } }
+  ]);
+});
+
+test('RND COL offers the four requested palettes and five all-colour choices, without laser changes', () => {
   assert.deepEqual(choices.map(choice => choice.id),
-    ['red', 'green', 'blue', 'orange', 'magenta', 'cyan', 'pinkBlue', 'fire', 'candy']);
+    ['orangeRed', 'magentaRed', 'cyanRed', 'warmWhite',
+      'allRed', 'allGreen', 'allBlue', 'allOrange', 'allMagenta']);
   for (const choice of choices) assert.deepEqual(Object.keys(choice.colours), ['beams', 'strobes']);
-  assert.deepEqual(choices.find(choice => choice.id === 'magenta').colours, { beams: 'roseRed', strobes: 'roseRed' });
-  for (const id of ['pinkBlue', 'fire', 'candy']) {
+  for (const id of ['orangeRed', 'magentaRed', 'cyanRed', 'warmWhite']) {
     const palette = config.colourControls.palettes.find(entry => entry.id === id);
     assert.deepEqual(choices.find(choice => choice.id === id).colours,
       { beams: palette.colours.beams, strobes: palette.colours.strobes });
   }
+  for (const [id, colour] of [
+    ['allRed', 'red'], ['allGreen', 'green'], ['allBlue', 'blue'],
+    ['allOrange', 'orange'], ['allMagenta', 'roseRed']
+  ]) assert.deepEqual(choices.find(choice => choice.id === id).colours, { beams: colour, strobes: colour });
 });
 
 test('every colour option can be picked and the current pair never immediately repeats', () => {
@@ -26,9 +39,9 @@ test('every colour option can be picked and the current pair never immediately r
     }
   }
   assert.equal(pickStreamDeckColour([], {}), null);
-  assert.equal(pickStreamDeckColour([choices[0]], choices[0].colours).id, 'red');
+  assert.equal(pickStreamDeckColour([choices[0]], choices[0].colours).id, 'orangeRed');
   assert.deepEqual(getStreamDeckColourChoices(config.colourControls,
-    [{ id: 'unknown', colour: 'magenta' }, { id: 'empty', palette: 'palette-11' }]), []);
+    [{ id: 'unknown', colour: 'magenta' }, { id: 'empty', palette: 'missing' }]), []);
 });
 
 test('deck positions, removed controls, and press/release mappings are correct', () => {

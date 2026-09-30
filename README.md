@@ -149,7 +149,7 @@ The current Laser section uses cues 11–14, 16–18, and 20–22 on executor 4.
 
 The additional cue mappings are Slow cues 23, 24, 26, and 27; Main cues 28 and 32; and Buildup cues 29–31. Cue 25 is intentionally absent from the photographed MA2 cue list.
 
-Starting an Auto Cycle and every subsequent automatic cue change also selects a different random Beam/Strobe palette. Auto Cycle excludes palettes containing Open, 3200K, 5600K, or any colour labelled white/filter; with the current configuration it rotates among Pink Blue, Deep Blue, Fire, Toxic, and Candy without immediately repeating the previous palette.
+Starting an Auto Cycle and every subsequent automatic cue change also selects a different random Beam/Strobe palette. Auto Cycle excludes palettes containing Open, 3200K, 5600K, or any colour labelled white/filter; with the current configuration it rotates among Orange / Red, Magenta / Red, and Cyan / Red without immediately repeating the previous palette.
 
 ### Special effects
 
@@ -200,7 +200,7 @@ The four Build buttons use a warm amber background, BUILD at the top, and MED WH
 
 ### Fixture colour wheel
 
-The white flash and white chase controls now sit beside the white strobe controls on the top row. Their original press/release actions are preserved; the four red/blue performance controls have been removed from the deck, not from MA2. The second row begins RND COL / Beams White / Strobes Red, followed by an empty key. RND COL chooses equally among Red, Green, Blue, Orange, Magenta (the existing Rose red selector cue 7), Cyan, Pink Blue, Fire, and Candy, excluding an immediate repeat of the current Beam/Strobe colour pair. Existing palettes are reused, but their Laser colour is never applied. All three colour buttons act on every observed press, have no release action or cooldown, preserve the running cue, and use the dashboard's selected colour fade. Independent counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`.
+The white flash and white chase controls now sit beside the white strobe controls on the top row. Their original press/release actions are preserved; the four red/blue performance controls have been removed from the deck, not from MA2. The second row begins RND COL / Beams White / Strobes Red, followed by an empty key. RND COL chooses equally among the four operator palettes (Orange / Red, Magenta / Red, Cyan / Red, and Warm White) or five matching Beam/Strobe colours (all Red, Green, Blue, Orange, or Magenta), excluding an immediate repeat of the current pair. It never changes Lasers. All three colour buttons act on every observed press, have no release action or cooldown, preserve the running cue, and use the dashboard's selected colour fade. Independent counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`.
 
 Run `node scripts/configure-colour-flash-layout.mjs [Companion base URL]` to apply this layout through the Companion 5 API. It checks the expected old or new layout and released key states, saves a page backup, moves the actual white flash controls intact, and verifies that unrelated buttons are unchanged. Keep `scripts/companion-api.mjs` alongside the setup scripts. No live lighting output is used by the automated mock tests.
 
