@@ -253,19 +253,21 @@ desk is held at a default tempo (125 BPM unless you change `link.defaultBpm`).
 ### How it works
 
 ```
-Mac running Live (Link on)  ──network──▶  Carabiner (Link peer, on the lighting PC)
+Mac running Serato (Link on)  ──network──▶  Carabiner (Link peer, on the lighting PC)
                                                │ TCP 127.0.0.1:17000
                                                ▼
                                           server.js  ──telnet──▶  MA2: SpecialMaster 3.1 At <bpm>
 ```
 
 [Carabiner](https://github.com/Deep-Symmetry/carabiner) is a small open-source daemon that joins the
-Link session on the network and exposes it over a local TCP socket. `server.js` reads the session
-tempo from it and sends it to MA2 whenever it changes by more than `minChangeBpm` (rate-limited to one
-command per `minIntervalMs`). The panel shows the live tempo and its source in the **Tempo** block of
-the control bar; tapping it toggles between following Link and holding the default.
+Link session on the network and exposes it over a local TCP socket. `server.js` is deliberately a
+**read-only Link client**: the only Carabiner command it sends is `status`. It reads the session tempo
+and sends it to MA2 whenever it changes by more than `minChangeBpm` (rate-limited to one command per
+`minIntervalMs`). It never sends a `bpm` command to Carabiner, so the dashboard's fallback cannot
+overwrite Serato. The panel shows the live tempo and its source in the **Tempo** block of the control
+bar; tapping it toggles between following Link and holding the MA2-only default.
 
-Fallback rules (all lead to the default tempo being sent to MA2):
+Fallback rules (all lead to the default tempo being sent to MA2 only, never to Link or Serato):
 
 - Carabiner is not running / not reachable
 - Carabiner is running but sees **no peers** (nothing on the network has Link enabled)
@@ -278,8 +280,10 @@ Fallback rules (all lead to the default tempo being sent to MA2):
 2. Either start it yourself alongside the panel server, or let the server manage it: set
    `link.carabiner.autoStart` to `true` and the server will run `Carabiner.exe --daemon --port 17000`
    and restart it if it exits.
-3. Windows Firewall: allow Carabiner on **UDP 20808** (Link discovery, multicast `224.76.78.75`).
-   The TCP port 17000 is local only and needs no rule.
+3. Windows Firewall: allow all UDP for `Carabiner.exe` from the wired lighting subnet. Link uses
+   multicast discovery plus dynamically selected UDP ports, so a port-20808-only rule is insufficient.
+   `setup.bat` installs the scoped program/source/interface rule. TCP port 17000 is local only and
+   needs no inbound rule.
 4. Restart the panel server. The sidebar **Link** row should read *No peers* (bridge up, nothing
    playing yet). *No bridge* means Carabiner is not reachable.
 
@@ -291,13 +295,14 @@ cable** between the Mac and the lighting PC:
 - Give both ends a static address on the same subnet **or** just let them self-assign (169.254.x.x
   link-local works fine for Link - it only needs multicast on that interface).
 - Do not route the Mac through a guest Wi-Fi network; most block multicast.
-- In Live, click **Link** (top-left of the transport). The Link row on the panel turns green and shows
-  the tempo within a second or two.
+- In Serato, enable **Link**. The Link row on the panel turns green and shows the tempo within a
+  second or two.
 
-> **Link behaviour to be aware of:** when an app *joins* a Link session it adopts the session's
-> current tempo - that is how Link works, for every app. Because Carabiner is always running, Live
-> will jump to the parked default (125 BPM) the moment Link is switched on. Just set the tempo in
-> Live afterwards; the panel and MA2 follow immediately.
+> **Tempo authority:** Ableton Link has no protocol-level master; any tempo-capable participant can
+> propose a tempo change. Operationally, Serato is the master in this installation because the
+> dashboard/Carabiner bridge is status-only. Keep other Link apps that can change tempo disabled if
+> Serato must be the sole authority. The 125 BPM default is only a safe value for MA2 while no peer
+> is present and is never written into the Link session.
 
 ### `config.json` keys
 

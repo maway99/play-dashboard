@@ -51,6 +51,7 @@ const state = {
   ma2LastResponse: null,
   link: {
     enabled: config.link?.enabled !== false,
+    bridgeMode: 'read-only',
     carabiner: 'disconnected',
     peers: 0,
     linkBpm: null,
@@ -275,11 +276,12 @@ const ma2 = new Ma2Telnet();
 // Carabiner (https://github.com/Deep-Symmetry/carabiner) joins the Ableton Link session on the
 // local network and exposes it over a plain-text TCP socket. We read the session tempo from it and
 // push it to a grandMA2 speed master. With no usable Link session (Carabiner not running, or zero
-// peers on the network) we fall back to config.link.defaultBpm so the desk always has a tempo.
+// peers on the network) we fall back to config.link.defaultBpm for MA2 only, so the desk always has
+// a tempo. The bridge is deliberately read-only: it must never propose a tempo to the Link session.
+// Serato remains the operational tempo authority and cannot inherit the MA2 fallback from us.
 //
 // Carabiner protocol (newline-terminated):
 //   -> status                  <- status { :peers 1 :bpm 128.000000 :start 1234 :beat 56.7 }
-//   -> bpm 125.0               (sets the session tempo; used to park the idle session at the default)
 // Carabiner also emits an unsolicited status line whenever tempo or peer count changes.
 class LinkBridge {
   constructor(cfg = {}) {
@@ -350,9 +352,9 @@ class LinkBridge {
     sock.on('connect', () => {
       console.log(`[Link] Connected to Carabiner ${this.carabiner.host}:${this.carabiner.port}`);
       state.link.carabiner = 'connected';
-      this.write('status');
+      this.requestStatus();
       clearInterval(this.pollTimer);
-      this.pollTimer = setInterval(() => this.write('status'), this.cfg.pollIntervalMs);
+      this.pollTimer = setInterval(() => this.requestStatus(), this.cfg.pollIntervalMs);
       this.recompute(true);
     });
     sock.on('data', (chunk) => {
@@ -385,9 +387,11 @@ class LinkBridge {
     sock.connect(this.carabiner.port, this.carabiner.host);
   }
 
-  write(cmd) {
+  // Keep the Carabiner control surface status-only. Do not accept an arbitrary command here: a
+  // `bpm ...` write would allow the dashboard's 125 BPM desk fallback to change Serato's session.
+  requestStatus() {
     if (this.socket && state.link.carabiner === 'connected') {
-      try { this.socket.write(`${cmd}\n`); } catch {}
+      try { this.socket.write('status\n'); } catch {}
     }
   }
 
@@ -405,10 +409,6 @@ class LinkBridge {
     if (Number.isFinite(beat)) state.link.beat = beat;
     state.link.lastStatusAt = Date.now();
     if (Number.isFinite(peers) && peers !== prevPeers) console.log(`[Link] Peers: ${prevPeers} -> ${peers}`);
-    // Park the idle session at the default so a peer that joins us lands on it rather than Carabiner's 120.
-    if (peers === 0 && Number.isFinite(bpm) && Math.abs(bpm - this.cfg.defaultBpm) > 0.05) {
-      this.write(`bpm ${this.cfg.defaultBpm}`);
-    }
     this.recompute(false);
   }
 

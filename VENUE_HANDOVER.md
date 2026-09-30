@@ -1,6 +1,6 @@
 # Room 1 Lighting Dashboard — Venue Handover
 
-Last verified: **18 September 2026**
+Last verified: **30 September 2026**
 
 This is the durable operational context for future dashboard work. Keep it updated whenever the venue topology, cue mapping, startup process, or recovery package changes. Do not add passwords, private keys, or other secrets to this file.
 
@@ -104,6 +104,23 @@ The same-day Windows System log also contains a separate confirmed NIC failure a
 The node identifies as an ADJ NET8 on firmware `V1.10`. All eight ports are configured as Art-Net outputs at 30 Hz with RDM disabled. Its Signal Loss behavior is currently `Play Show Loop`, not `Hold Last`. Do not change the node or NIC during a show. In a maintenance window, first set Signal Loss to Hold Last, then disable Energy Efficient Ethernet, Ultra Low Power Mode, and Reduce Speed On Power Down on the Intel adapter; applying NIC properties will briefly interrupt Ethernet. Re-capture after each change so the actual fix remains attributable.
 
 ## Installation, updates, and recovery
+
+### 30 September 2026 Serato tempo authority
+
+The dashboard's Carabiner control connection is now permanently status-only. It sends only the
+`status` command and never sends a Carabiner `bpm` command. Previously, while Carabiner saw zero
+external peers, the dashboard parked the idle Link session at the configured 125 BPM fallback. That
+could make Serato inherit 125 BPM when it subsequently enabled Link. The parking write was removed.
+
+The 125 BPM `link.defaultBpm` value remains as an **MA2-only fallback** while Serato is absent, Link
+following is disabled, or the bridge is unavailable. It is still sent to `SpecialMaster 3.1`, but it
+cannot flow back into the Link session. `/api/state` reports `link.bridgeMode: "read-only"`, and the
+regression test uses mock Carabiner and MA2 endpoints to prove that only status requests go upstream
+while both fallback and live external tempos continue to reach MA2.
+
+Ableton Link itself has no formal master: any other tempo-capable Link participant can still propose
+a change. For Serato to remain the sole operational tempo authority, do not enable tempo control in
+additional Link applications on this lighting network.
 
 ### 18 September 2026 Link recovery
 
