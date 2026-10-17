@@ -141,10 +141,12 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
           assert.notDeepEqual(pair, previousColours, 'Do not immediately repeat the current colour combination');
           assert.match(sent[0], /Exec 1\.1 /);
           assert.match(sent[1], /Exec 1\.2 /);
+          assert.ok(sent.every(command => command.endsWith('Fade 0')),
+            'Random colour selectors must ignore the global cue fade');
           previousColours = pair;
         } else {
           const fixture = config.colourControls.fixtures.find(entry => entry.id === selectedButton.fixtureId);
-          assert.equal(sent[0], `Goto Cue ${fixture.cues[selectedButton.colourId]} Exec ${fixture.page}.${fixture.exec} Fade ${config.defaults.fadeTime}`);
+          assert.equal(sent[0], `Goto Cue ${fixture.cues[selectedButton.colourId]} Exec ${fixture.page}.${fixture.exec} Fade 0`);
           assert.equal(state.fixtureColours[selectedButton.fixtureId], selectedButton.colourId);
           assert.equal(state.fixtureColours[selectedButton.fixtureId === 'beams' ? 'strobes' : 'beams'],
             selectedButton.fixtureId === 'beams' ? 'cyan' : 'red');
@@ -174,6 +176,8 @@ test(`Companion ${buttonId} counter fires its assigned cues and does not stop on
       if (bankKey === 'mainCues') {
         assert.match(sent[1], /Exec 1\.1 /);
         assert.match(sent[2], /Exec 1\.2 /);
+        assert.ok(sent.slice(1).every(command => command.endsWith('Fade 0')),
+          'Main cue colour reapplication must ignore the global cue fade');
       }
       previous = state.activeCue;
     }

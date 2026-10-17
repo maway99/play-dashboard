@@ -57,14 +57,6 @@ export default function Sidebar({ active, onChange, state, send }) {
 }
 
 function LampControls({ maintenance, send }) {
-  const [pendingOff, setPendingOff] = useState(false);
-
-  useEffect(() => {
-    if (!pendingOff) return undefined;
-    const timeout = setTimeout(() => setPendingOff(false), 2500);
-    return () => clearTimeout(timeout);
-  }, [pendingOff]);
-
   const configured = !!maintenance?.configured
     && Number.isFinite(maintenance.cueStack?.page)
     && Number.isFinite(maintenance.cueStack?.exec);
@@ -75,13 +67,7 @@ function LampControls({ maintenance, send }) {
     if (lampOnMapped) send({ type: 'maintenance', scope: 'global', action: 'lampOn' });
   };
   const lampOff = () => {
-    if (!lampOffMapped) return;
-    if (!pendingOff) {
-      setPendingOff(true);
-      return;
-    }
-    setPendingOff(false);
-    send({ type: 'maintenance', scope: 'global', action: 'lampOff' });
+    if (lampOffMapped) send({ type: 'maintenance', scope: 'global', action: 'lampOff' });
   };
 
   return (
@@ -103,17 +89,15 @@ function LampControls({ maintenance, send }) {
           type="button"
           onClick={lampOff}
           disabled={!lampOffMapped}
-          aria-label={pendingOff ? 'Confirm all lamps off' : 'All lamps off'}
+          aria-label="All lamps off"
           className={`btn h-[var(--ctl-h)] px-2 text-[12px] ${
             !lampOffMapped
               ? 'bg-btn text-white/35 border border-dashed border-border/70'
-              : pendingOff
-              ? 'bg-bad text-white border border-bad'
               : 'bg-transparent text-bad border border-bad/50 hover:border-bad'
           }`}
           style={{ minHeight: 0 }}
         >
-          {pendingOff ? 'Tap Again' : 'Lamps Off'}
+          Lamps Off
         </button>
       </div>
     </section>

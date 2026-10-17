@@ -233,7 +233,7 @@ function ControlBar({ state, autoBank, autoNextAt, toggleAuto, onClear, send }) 
         </div>
 
         <div className="flex-[1.7] min-w-0 px-6">
-          <div className="section-header mb-1.5">Fade Time</div>
+          <div className="section-header mb-1.5">Cue Fade</div>
           <FadeTimePresets
             value={state.fadeTime}
             onChange={(v) => send({ type: 'fadeTime', value: v })}
@@ -291,7 +291,7 @@ function ControlBar({ state, autoBank, autoNextAt, toggleAuto, onClear, send }) 
           <button
             onClick={() => send({ type: 'endOfNight', active: !state.endOfNightActive })}
             aria-pressed={state.endOfNightActive ? 'true' : 'false'}
-            title={state.endOfNightActive ? 'End of night is on - tap to switch off' : 'Switch on end of night'}
+            title={state.endOfNightActive ? 'End of night is on - tap to switch off' : 'Switch on end of night with a 5 second fade'}
             className={`btn h-[var(--ctl-h)] w-full text-[14px] ${
               state.endOfNightActive ? 'btn-warn' : 'bg-btn text-white border border-amber/60 hover:border-amber'
             }`}

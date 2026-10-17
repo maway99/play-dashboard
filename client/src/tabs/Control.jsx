@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 const GLOBAL_ACTIONS = [
   { id: 'lampOn', label: 'All lamps on', tone: 'default', confirm: false },
-  { id: 'lampOff', label: 'All lamps off', tone: 'warn', confirm: true },
+  { id: 'lampOff', label: 'All lamps off', tone: 'warn', confirm: false },
   { id: 'reset', label: 'Reset all fixtures', tone: 'warn', confirm: true }
 ];
 
 const BEAM_ACTIONS = [
   { id: 'lampOn', label: 'Lamp on', confirm: false },
-  { id: 'lampOff', label: 'Lamp off', confirm: true },
+  { id: 'lampOff', label: 'Lamp off', confirm: false },
   { id: 'reset', label: 'Reset', confirm: true }
 ];
 

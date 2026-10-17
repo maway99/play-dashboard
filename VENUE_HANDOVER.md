@@ -35,7 +35,7 @@ The Art-Net node at `2.0.0.1` was reachable from both the lighting PC and mainte
 - Strobe colour selector: executor `1.2`
 - White strobe: executor `1.101`, cue `1`
 - White flash: executor `1.102`, cue `1`
-- Lamp control: executor `4.6`, sequence `12`; cue `1` lamps on, cue `2` lamps off
+- Lamp control: executor `4.6`, sequence `12`; cue `1` lamps on, cue `2` lamps off; both fire on one press
 - Confetti: executor `4.3`; cue `1` inside, cue `2` outside; each fire runs for `3 seconds` then sends Off
 - CO2: executor `4.4`, cue `1`; active only while the Stream Deck FIRE button is held
 - Main cues: cues `1–5`, `28`, `32`
@@ -57,7 +57,9 @@ The third physical Stream Deck row now has four amber BUILD buttons at page 1 / 
 
 ## Startup and kiosk
 
-The top physical Stream Deck row starts STROBES WHITE / STROBES WHITE RND / FLASHES WHITE / FLASHES WHITE CHASE (page 1, row 0, columns 0–3). The two white flashes were moved intact; all four red/blue flash/strobe performance keys were removed. The second row starts COLOUR RND COL / BEAMS WHITE / STROBES RED / empty (row 1, columns 0–3). Strobes Red is a colour selector, not a strobe fire key. RND COL picks Orange / Red, Magenta / Red, Cyan / Red, Warm White, all Red, all Green, all Blue, all Orange, or all Magenta with equal chance and no immediate repeat of the effective Beam/Strobe pair. It changes only Beams and Strobes, never Lasers. All three colour actions latch on each press, preserve the active cue and use the selected colour fade. Counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`. Reapply with `node scripts/configure-colour-flash-layout.mjs`; its page exports and layout/held-state checks protect unrelated keys. The pre-change page export is retained at `C:\play-dashboard\logs\companion-page1-before-colour-flash-layout-1789768927472.json`. The regression suite checks rapid colour taps, the exact nine-option pool, no Laser changes, and both moved flashes' press/release behaviour against mock endpoints without firing live lights.
+The top physical Stream Deck row starts STROBES WHITE / STROBES WHITE RND / FLASHES WHITE / FLASHES WHITE CHASE (page 1, row 0, columns 0–3). The two white flashes were moved intact; all four red/blue flash/strobe performance keys were removed. The second row starts COLOUR RND COL / BEAMS WHITE / STROBES RED / empty (row 1, columns 0–3). Strobes Red is a colour selector, not a strobe fire key. RND COL picks Orange / Red, Magenta / Red, Cyan / Red, Warm White, all Red, all Green, all Blue, all Orange, or all Magenta with equal chance and no immediate repeat of the effective Beam/Strobe pair. It changes only Beams and Strobes, never Lasers. All colour selectors and palettes always use `Fade 0`; the operator Cue Fade setting applies only to movement cues. Counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`. Reapply with `node scripts/configure-colour-flash-layout.mjs`; its page exports and layout/held-state checks protect unrelated keys. The pre-change page export is retained at `C:\play-dashboard\logs\companion-page1-before-colour-flash-layout-1789768927472.json`. The regression suite checks rapid colour taps, the exact nine-option pool, no Laser changes, and both moved flashes' press/release behaviour against mock endpoints without firing live lights.
+
+End Of Night always starts cue `7` on executor `4.1` with `Fade 5`, independently of the Cue Fade setting. Lamp Off fires immediately on a single press in both the sidebar and maintenance controls; only reset/disable maintenance actions retain confirmation.
 
 The unattended sequence is:
 

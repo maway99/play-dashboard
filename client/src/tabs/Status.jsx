@@ -127,7 +127,7 @@ export default function Status({ state, tick, wsConnected, send }) {
         <div className="grid grid-cols-3 gap-6">
           <Row label="MA2 host" value={`${state.config.ma2.ip}:${state.config.ma2.port}`} />
           <Row label="Cue stack" value={`P${state.config.cueStack.page}.${state.config.cueStack.exec}`} />
-          <Row label="Default fade" value={`${state.config.defaults.fadeTime.toFixed(1)}s`} />
+          <Row label="Default cue fade" value={`${state.config.defaults.fadeTime.toFixed(1)}s`} />
         </div>
       </Card>
     </div>

@@ -136,9 +136,9 @@ All venue-specific values live here. **No hardcoded values in code.**
 | `streamDeck.companion` | Bitfocus Companion bridge host plus Stream Deck button locations |
 | `cueBanks.*`     | Lighting cue-library buttons; `cue: null` means unassigned and will not dispatch |
 | `executors.haze` | Fader executor for haze level                                               |
-| `executors.endOfNight` | Page, executor, and cue for the dedicated End-of-Night control        |
+| `executors.endOfNight` | Page, executor, cue, and dedicated 5s fade for End Of Night          |
 | `executors.disables` | Inhibitive submaster execs per fixture group                            |
-| `defaults.fadeTime`  | Fade time on first launch (currently 0.5s)                              |
+| `defaults.fadeTime`  | Movement-cue fade on first launch (currently 0.5s); colours always use 0s |
 
 `config.json` is read once at server start. Restart PM2 after editing.
 
@@ -205,7 +205,7 @@ The four Build buttons use a warm amber background, BUILD at the top, and MED WH
 
 ### Fixture colour wheel
 
-The white flash and white chase controls now sit beside the white strobe controls on the top row. Their original press/release actions are preserved; the four red/blue performance controls have been removed from the deck, not from MA2. The second row begins RND COL / Beams White / Strobes Red, followed by an empty key. RND COL chooses equally among the four operator palettes (Orange / Red, Magenta / Red, Cyan / Red, and Warm White) or five matching Beam/Strobe colours (all Red, Green, Blue, Orange, or Magenta), excluding an immediate repeat of the current pair. It never changes Lasers. All three colour buttons act on every observed press, have no release action or cooldown, preserve the running cue, and use the dashboard's selected colour fade. Independent counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`.
+The white flash and white chase controls now sit beside the white strobe controls on the top row. Their original press/release actions are preserved; the four red/blue performance controls have been removed from the deck, not from MA2. The second row begins RND COL / Beams White / Strobes Red, followed by an empty key. RND COL chooses equally among the four operator palettes (Orange / Red, Magenta / Red, Cyan / Red, and Warm White) or five matching Beam/Strobe colours (all Red, Green, Blue, Orange, or Magenta), excluding an immediate repeat of the current pair. It never changes Lasers. All three colour buttons act on every observed press, have no release action or cooldown, preserve the running cue, and always use zero fade regardless of the selected movement-cue fade. Independent counters are `pgro_sd_random_colours_press`, `pgro_sd_beams_white_press`, and `pgro_sd_strobes_red_colour_press`.
 
 Run `node scripts/configure-colour-flash-layout.mjs [Companion base URL]` to apply this layout through the Companion 5 API. It checks the expected old or new layout and released key states, saves a page backup, moves the actual white flash controls intact, and verifies that unrelated buttons are unchanged. Keep `scripts/companion-api.mjs` alongside the setup scripts. No live lighting output is used by the automated mock tests.
 

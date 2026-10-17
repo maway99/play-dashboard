@@ -27,6 +27,8 @@ if (companionUrlOverride && config.streamDeck?.companion) {
 const PORT = process.env.PORT || config.server?.port || 3000;
 const startedAt = Date.now();
 const specialEffectTimers = new Map();
+const COLOUR_FADE_SECONDS = 0;
+const END_OF_NIGHT_FADE_SECONDS = 5;
 
 // ---------- Server state ("track what we sent") ----------
 const state = {
@@ -594,9 +596,9 @@ function sendFixtureColour(fixtureId, colourId) {
   const { fixture, cue } = target;
   const executor = fixture.executorOverrides?.[colourId];
   if (Number.isFinite(executor?.page) && Number.isFinite(executor?.exec)) {
-    ma2.send(`Goto Cue ${cue} Exec ${executor.page}.${executor.exec} Fade ${state.fadeTime}`);
+    ma2.send(`Goto Cue ${cue} Exec ${executor.page}.${executor.exec} Fade ${COLOUR_FADE_SECONDS}`);
   } else {
-    ma2.send(`Goto Cue ${cue} Exec ${fixture.page}.${fixture.exec} Fade ${state.fadeTime}`);
+    ma2.send(`Goto Cue ${cue} Exec ${fixture.page}.${fixture.exec} Fade ${COLOUR_FADE_SECONDS}`);
   }
   state.fixtureColours[fixtureId] = colourId;
   return true;
@@ -728,7 +730,7 @@ function setEndOfNight(active) {
   }
 
   if (active) {
-    ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade 1`);
+    ma2.send(`Goto Cue ${target.cue} Exec ${target.page}.${target.exec} Fade ${END_OF_NIGHT_FADE_SECONDS}`);
     state.activeCue = target.cue;
     state.endOfNightActive = true;
   } else {

@@ -30,14 +30,14 @@ Run through this **on-site, on the actual lighting PC, with the MA2 show file fi
 For each, press the panel control and confirm the **MA2 command line** reacts correctly:
 
 - [ ] **Haze slider** — drag to 50, release. MA2 Fader for haze exec moves. Drag to 0.
-- [ ] **Fade Time** — switch between 0s / 0.5s / 2s. Pick 0s for next test.
-- [ ] **Colour controls** — test Both, Beams, Strobes, and each palette. Confirm only the mapped Beam and Strobe colour cues fire.
+- [ ] **Cue Fade** — switch between 0s / 0.5s / 2s and confirm it changes movement cues only.
+- [ ] **Colour controls** — with Cue Fade set to 2s, test Both, Beams, Strobes, and each palette. Confirm only the mapped Beam and Strobe colour cues fire, all with `Fade 0`.
 - [ ] **Maintenance tab cue mapping** — if lamp/reset/disable controls are required, confirm `fixtureMaintenance.configured = true` and every global/beam maintenance cue maps to the final MA2 show file.
-- [ ] **Maintenance tab safety** — confirm All lamps off and Reset all fixtures require confirmation before dispatch.
+- [ ] **Maintenance tab safety** — confirm Lamp Off dispatches on one press while Reset all fixtures still requires confirmation.
 - [ ] **Cue from each bank** — after assigning cues, test Slow, Main, Show, Buildups, and Laser Cues (1 cue per bank minimum). Confirm the right rig look comes up each time.
 - [ ] **Cue swap** — fire a cue, then a different one. Previous deactivates, new one activates.
 - [ ] **Blackout** — toggle on, rig blacks out. Toggle off, rig comes back to last cue.
-- [ ] **End of Night** — fire while a cue is active. EOTN sequence runs and previous cue clears.
+- [ ] **End of Night** — fire while a cue is active. EOTN sequence runs with `Fade 5` and the previous cue clears.
 - [ ] **EOTN release** — with EOTN active, press any cue. EOTN goes off, new cue fires.
 - [ ] **Disables** — toggle each fixture group off. That group goes dark. Toggle back on, returns. Sidebar badge increments correctly.
 - [ ] **Confetti safety (effects physically isolated or authorised only)** — FIRE 1 and FIRE 2 do nothing while disarmed. ARM CONFETTI, press FIRE 1, and confirm `Cue 1 Exec 4.3` runs for 3 seconds before `Off Exec 4.3`. Re-arm and repeat FIRE 2 for cue 2. Confirm each fire disarms immediately.

@@ -1301,7 +1301,8 @@
     "endOfNight": {
       "page": 4,
       "exec": 1,
-      "cue": 7
+      "cue": 7,
+      "fadeTime": 5
     },
     "disables": {
       "beams": {
