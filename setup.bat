@@ -42,12 +42,12 @@ if not exist "%BROWSER%" (
 echo     Kiosk browser: %BROWSER%
 
 echo.
-echo [1/10] Verify lighting network
+echo [1/11] Verify lighting network
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\verify-lighting-network.ps1"
 if errorlevel 1 goto :fail
 
 echo.
-echo [2/10] npm install ^(server^)
+echo [2/11] npm install ^(server^)
 if exist "%ROOT%\node_modules\express\package.json" if exist "%ROOT%\node_modules\ws\package.json" if exist "%ROOT%\node_modules\pm2\package.json" (
     echo     Using bundled production dependencies
 ) else (
@@ -56,7 +56,7 @@ if exist "%ROOT%\node_modules\express\package.json" if exist "%ROOT%\node_module
 )
 
 echo.
-echo [3/10] npm install ^(client^)
+echo [3/11] npm install ^(client^)
 if exist "%ROOT%\client\dist\index.html" (
     echo     Using bundled production client
 ) else (
@@ -65,7 +65,7 @@ if exist "%ROOT%\client\dist\index.html" (
 )
 
 echo.
-echo [4/10] Build client
+echo [4/11] Build client
 if exist "%ROOT%\client\dist\index.html" (
     echo     Prebuilt client ready
 ) else (
@@ -75,7 +75,7 @@ if exist "%ROOT%\client\dist\index.html" (
 if not exist "%ROOT%\client\dist\index.html" goto :fail
 
 echo.
-echo [5/10] Verify local PM2
+echo [5/11] Verify local PM2
 if not exist "%ROOT%\node_modules\pm2\bin\pm2" (
     echo ERROR: Local PM2 dependency missing.
     goto :fail
@@ -86,12 +86,12 @@ if errorlevel 1 goto :fail
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 
 echo.
-echo [6/10] Install Microsoft Visual C++ runtime
+echo [6/11] Install Microsoft Visual C++ runtime
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\install-vc-runtime.ps1" -Root "%ROOT%"
 if errorlevel 1 goto :fail
 
 echo.
-echo [7/10] Install Ableton Link bridge
+echo [7/11] Install Ableton Link bridge
 if not exist "%ROOT%\tools\Carabiner.exe" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\get-carabiner.ps1"
     if errorlevel 1 goto :fail
@@ -108,12 +108,12 @@ netsh advfirewall firewall add rule name="Play Dashboard Maintenance HTTP" dir=i
 if errorlevel 1 goto :fail
 
 echo.
-echo [8/10] Verify Bitfocus Companion
+echo [8/11] Verify Bitfocus Companion
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\start-companion.ps1"
 if errorlevel 1 goto :fail
 
 echo.
-echo [9/10] Register Task Scheduler ^(runs start-panel.bat interactively at logon^)
+echo [9/11] Register Task Scheduler ^(runs start-panel.bat interactively at logon^)
 
 REM Remove any legacy tasks from older installs.
 schtasks /Delete /TN "Trilogy PM2 Resurrect" /F >nul 2>&1
@@ -129,7 +129,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\register-sta
 if errorlevel 1 goto :fail
 
 echo.
-echo [10/10] Configure unattended venue logon
+echo [10/11] Disable Windows Update for the isolated venue PC
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\disable-windows-update.ps1" -Install -Root "%ROOT%"
+if errorlevel 1 goto :fail
+
+echo.
+echo [11/11] Configure unattended venue logon
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\configure-venue-autologon.ps1"
 if errorlevel 1 goto :fail
 

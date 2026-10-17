@@ -1,6 +1,6 @@
 # Room 1 Lighting Dashboard — Venue Handover
 
-Last verified: **30 September 2026**
+Last verified: **17 October 2026**
 
 This is the durable operational context for future dashboard work. Keep it updated whenever the venue topology, cue mapping, startup process, or recovery package changes. Do not add passwords, private keys, or other secrets to this file.
 
@@ -104,6 +104,21 @@ The same-day Windows System log also contains a separate confirmed NIC failure a
 The node identifies as an ADJ NET8 on firmware `V1.10`. All eight ports are configured as Art-Net outputs at 30 Hz with RDM disabled. Its Signal Loss behavior is currently `Play Show Loop`, not `Hold Last`. Do not change the node or NIC during a show. In a maintenance window, first set Signal Loss to Hold Last, then disable Energy Efficient Ethernet, Ultra Low Power Mode, and Reduce Speed On Power Down on the Intel adapter; applying NIC properties will briefly interrupt Ethernet. Re-capture after each change so the actual fix remains attributable.
 
 ## Installation, updates, and recovery
+
+### 17 October 2026 Windows Update lock
+
+Windows Update is disabled for this isolated venue PC. The policy blocks Windows Update access and
+automatic updates, the update-specific services and scheduled tasks are disabled where Windows
+permits, and the `Play Dashboard Disable Windows Update` task runs as SYSTEM at startup and daily to
+re-apply the lock if Windows servicing changes it. BITS remains available because it is shared by
+unrelated Windows and application features.
+
+The canonical enforcement script is
+`C:\play-dashboard\scripts\disable-windows-update.ps1`. The pre-change service, task and policy state
+is retained in `C:\play-dashboard\logs\windows-update-before-lock.json` for recovery. The normal
+installer applies the lock, and `verify-install.ps1` now fails if the policy, disabled Windows Update
+service, or SYSTEM enforcement task is missing. This prevents an unattended feature update or reboot,
+but it also prevents security updates until an administrator deliberately reverses the venue policy.
 
 ### 30 September 2026 Serato tempo authority
 

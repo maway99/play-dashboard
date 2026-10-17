@@ -29,6 +29,11 @@ Panel talks to its own backend on `localhost:3000` via WebSocket. Backend talks 
 
 `setup.bat` is the full installer (plain batch). It verifies the `2.0.0.10 / 255.0.0.0` lighting adapter, installs dependencies and the Windows Ableton Link bridge, verifies Companion, builds the client, starts PM2, registers an interactive auto-start task, opens Chrome kiosk once at the end, then you reboot to confirm logon auto-start.
 
+The venue PC is intentionally isolated from the internet. Setup also installs a durable Windows
+Update lock using `scripts\disable-windows-update.ps1`: update policy is blocked, update-specific
+services/tasks are disabled, and a SYSTEM task re-applies the lock at startup and daily. The original
+state is captured under `logs\windows-update-before-lock.json`; BITS is deliberately left enabled.
+
 If Chrome does not open after reboot: run `start-panel.bat` manually and check the `logs\` folder.
 
 For an on-demand end-to-end check, run `powershell -ExecutionPolicy Bypass -File scripts\verify-install.ps1`. It verifies the lighting NIC, scheduled task, dashboard, local MA2 and Companion routing, Carabiner, and the dedicated Chrome kiosk process.

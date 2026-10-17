@@ -22,6 +22,13 @@ if ($winlogon.AutoAdminLogon -ne '1') {
 }
 Write-Host "Automatic logon OK: $($winlogon.DefaultDomainName)\$($winlogon.DefaultUserName)"
 
+& (Join-Path $root 'scripts\disable-windows-update.ps1') -VerifyOnly -Root $root
+if ($LASTEXITCODE -ne 0) {
+  Write-Error 'The durable Windows Update lock is missing or incomplete.'
+  exit 1
+}
+Write-Host 'Windows Update lock OK: policy, service and SYSTEM enforcement task'
+
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 $panelState = $null
 $streamDeckState = $null
